@@ -1,0 +1,85 @@
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('[data-service-carousel]').forEach(carousel=>{
+    const viewport=carousel.querySelector('.wedding-carousel-viewport');
+    const track=carousel.querySelector('[data-carousel-track]');
+    const slides=[...carousel.querySelectorAll('[data-service-slide]')];
+    const previous=carousel.querySelector('[data-carousel-prev]');
+    const next=carousel.querySelector('[data-carousel-next]');
+    const count=carousel.querySelector('[data-carousel-current]');
+    if(!viewport||!track||!slides.length)return;
+    let active=0,dragStart=null,dragging=false,suppressClick=false,wheelLocked=false;
+    const center=()=>{
+      const slide=slides[active];
+      const offset=viewport.clientWidth/2-slide.offsetLeft-slide.offsetWidth/2;
+      track.style.transform=`translate3d(${offset}px,0,0)`;
+    };
+    const go=index=>{
+      active=Math.max(0,Math.min(index,slides.length-1));
+      slides.forEach((slide,i)=>{
+        const selected=i===active;
+        slide.classList.toggle('is-active',selected);
+        slide.setAttribute('aria-current',String(selected));
+        slide.tabIndex=selected?0:-1;
+      });
+      count.textContent=String(active+1).padStart(2,'0');
+      previous.disabled=active===0;
+      next.disabled=active===slides.length-1;
+      carousel.style.setProperty('--wedding-backdrop',`url("${slides[active].dataset.src}")`);
+      center();
+    };
+    previous.addEventListener('click',()=>go(active-1));
+    next.addEventListener('click',()=>go(active+1));
+    slides.forEach((slide,i)=>slide.addEventListener('click',event=>{
+      if(i===active)return;
+      event.preventDefault();
+      go(i);
+      slide.focus({preventScroll:true});
+    }));
+    carousel.addEventListener('click',event=>{
+      if(!suppressClick)return;
+      event.preventDefault();event.stopImmediatePropagation();
+      suppressClick=false;
+    },true);
+    viewport.addEventListener('pointerdown',event=>{
+      if(event.button!==0&&event.pointerType==='mouse')return;
+      dragStart={x:event.clientX,y:event.clientY,id:event.pointerId};
+      dragging=false;
+    });
+    viewport.addEventListener('pointermove',event=>{
+      if(!dragStart||dragStart.id!==event.pointerId)return;
+      const dx=event.clientX-dragStart.x,dy=event.clientY-dragStart.y;
+      if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy))dragging=true;
+    });
+    viewport.addEventListener('pointerup',event=>{
+      if(!dragStart||dragStart.id!==event.pointerId)return;
+      const dx=event.clientX-dragStart.x;
+      if(dragging&&Math.abs(dx)>45){
+        suppressClick=true;
+        go(active+(dx<0?1:-1));
+        window.setTimeout(()=>{suppressClick=false;},120);
+      }
+      dragStart=null;dragging=false;
+    });
+    viewport.addEventListener('pointercancel',()=>{dragStart=null;dragging=false;});
+    viewport.addEventListener('wheel',event=>{
+      const delta=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:0;
+      if(Math.abs(delta)<25||wheelLocked)return;
+      const destination=active+(delta>0?1:-1);
+      if(destination<0||destination>=slides.length)return;
+      event.preventDefault();go(destination);wheelLocked=true;
+      window.setTimeout(()=>{wheelLocked=false;},420);
+    },{passive:false});
+    carousel.addEventListener('keydown',event=>{
+      if(event.target.closest('.wedding-carousel-controls'))return;
+      let destination=null;
+      if(event.key==='ArrowLeft')destination=active-1;
+      if(event.key==='ArrowRight')destination=active+1;
+      if(event.key==='Home')destination=0;
+      if(event.key==='End')destination=slides.length-1;
+      if(destination!==null){event.preventDefault();go(destination);slides[active].focus({preventScroll:true});}
+    });
+    if('ResizeObserver' in window)new ResizeObserver(center).observe(viewport);
+    else window.addEventListener('resize',center,{passive:true});
+    go(0);
+  });
+});

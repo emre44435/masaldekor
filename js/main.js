@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     range.addEventListener('input',()=>setPosition(Number(range.value)));
   });
   const filters=[...document.querySelectorAll('[data-filter]')];
-  const items=[...document.querySelectorAll('.gallery-item')];
+  const items=[...document.querySelectorAll('.gallery-item, [data-service-slide]')];
   const box=document.querySelector('.lightbox');
   const boxImg=box?.querySelector('img');const caption=box?.querySelector('figcaption');
   let current=0;let lastFocus=null;
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }));
   function show(index){const list=visible();if(!list.length)return;current=(index+list.length)%list.length;const item=list[current];boxImg.src=item.dataset.src;boxImg.alt=item.dataset.caption;caption.textContent=item.dataset.caption;}
   function close(){if(!box)return;box.hidden=true;document.body.style.overflow='';boxImg.removeAttribute('src');lastFocus?.focus();}
-  items.forEach(item=>item.addEventListener('click',()=>{lastFocus=item;box.hidden=false;document.body.style.overflow='hidden';show(visible().indexOf(item));box.querySelector('.lightbox-close').focus();}));
+  items.forEach(item=>item.addEventListener('click',event=>{if(event.defaultPrevented||!box)return;lastFocus=item;box.hidden=false;document.body.style.overflow='hidden';show(visible().indexOf(item));box.querySelector('.lightbox-close').focus();}));
   box?.querySelector('.lightbox-close').addEventListener('click',close);
   box?.querySelector('.lightbox-prev').addEventListener('click',()=>show(current-1));
   box?.querySelector('.lightbox-next').addEventListener('click',()=>show(current+1));
