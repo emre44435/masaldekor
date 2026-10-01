@@ -62,7 +62,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   const box=document.querySelector('.lightbox');
   const boxImg=box?.querySelector('img');const caption=box?.querySelector('figcaption');
   const previousImage=box?.querySelector('.lightbox-previous-image');
-  let current=0;let lastFocus=null;let transitionToken=0;
+  const weddingLightbox=box?.classList.contains('wedding-lightbox');
+  const weddingHistoryKey='masalWeddingLightbox';
+  let current=0;let lastFocus=null;let transitionToken=0;let weddingHistoryEntry=false;
   const visible=()=>items.filter(item=>!item.hidden);
   filters.forEach(button=>button.addEventListener('click',()=>{
     filters.forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
@@ -117,7 +119,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       });
     });
   }
-  function close(){
+  function closeOverlay(){
     if(!box)return;
     transitionToken++;
     boxImg?.getAnimations?.().forEach(animation=>animation.cancel());
@@ -125,7 +127,34 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(previousImage){previousImage.hidden=true;previousImage.removeAttribute('src');}
     box.hidden=true;document.body.style.overflow='';boxImg.removeAttribute('src');lastFocus?.focus();
   }
-  items.forEach(item=>item.addEventListener('click',event=>{if(event.defaultPrevented||!box)return;lastFocus=item;box.hidden=false;document.body.style.overflow='hidden';show(visible().indexOf(item));box.querySelector('.lightbox-close').focus();}));
+  function close(){
+    if(!box||box.hidden)return;
+    const restoreHistory=weddingLightbox&&weddingHistoryEntry;
+    weddingHistoryEntry=false;
+    closeOverlay();
+    if(restoreHistory)window.history?.back();
+  }
+  items.forEach(item=>item.addEventListener('click',event=>{
+    if(event.defaultPrevented||!box)return;
+    if(weddingLightbox&&box.hidden&&window.history?.pushState){
+      try{window.history.pushState({[weddingHistoryKey]:true},'');weddingHistoryEntry=true;}
+      catch{weddingHistoryEntry=false;}
+    }
+    lastFocus=item;box.hidden=false;document.body.style.overflow='hidden';
+    show(visible().indexOf(item));box.querySelector('.lightbox-close').focus();
+  }));
+  if(weddingLightbox)window.addEventListener('popstate',event=>{
+    if(event.state?.[weddingHistoryKey]){
+      weddingHistoryEntry=true;
+      if(box.hidden&&lastFocus){
+        box.hidden=false;document.body.style.overflow='hidden';
+        show(current);box.querySelector('.lightbox-close').focus();
+      }
+    }else{
+      weddingHistoryEntry=false;
+      if(!box.hidden)closeOverlay();
+    }
+  });
   box?.querySelector('.lightbox-close').addEventListener('click',close);
   box?.querySelector('.lightbox-prev').addEventListener('click',()=>show(current-1));
   box?.querySelector('.lightbox-next').addEventListener('click',()=>show(current+1));

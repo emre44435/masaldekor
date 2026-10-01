@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const viewport=carousel.querySelector('.wedding-carousel-viewport');
     const track=carousel.querySelector('[data-carousel-track]');
     const slides=[...carousel.querySelectorAll('[data-service-slide]')];
+    const serviceName=carousel.dataset.serviceName||'düğün';
     const previous=carousel.querySelector('[data-carousel-prev]');
     const next=carousel.querySelector('[data-carousel-next]');
     const count=carousel.querySelector('[data-carousel-current]');
@@ -19,7 +20,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const selected=i===active;
         slide.classList.toggle('is-active',selected);
         slide.setAttribute('aria-current',String(selected));
-        slide.setAttribute('aria-label',`${i+1}. düğün fotoğrafını ${selected?'büyüt':'seç'}`);
+        slide.setAttribute('aria-label',`${i+1}. ${serviceName} fotoğrafını ${selected?'büyüt':'seç'}`);
         slide.tabIndex=selected?0:-1;
       });
       count.textContent=String(active+1).padStart(2,'0');
@@ -89,7 +90,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     else window.addEventListener('resize',center,{passive:true});
     go(0);
   });
-  const lightbox=document.querySelector('.page-hizmet-dugun .lightbox');
+  const lightbox=document.querySelector('.wedding-lightbox');
   const lightboxPhoto=lightbox?.querySelector('figure');
   let lightboxStart=null;
   lightboxPhoto?.addEventListener('pointerdown',event=>{
