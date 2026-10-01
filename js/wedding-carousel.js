@@ -8,17 +8,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     const count=carousel.querySelector('[data-carousel-current]');
     if(!viewport||!track||!slides.length)return;
     let active=0,dragStart=null,dragging=false,suppressClick=false,wheelLocked=false;
-    const center=()=>{
+    const centerOffset=()=>{
       const slide=slides[active];
-      const offset=viewport.clientWidth/2-slide.offsetLeft-slide.offsetWidth/2;
-      track.style.transform=`translate3d(${offset}px,0,0)`;
+      return viewport.clientWidth/2-slide.offsetLeft-slide.offsetWidth/2;
     };
+    const center=()=>{track.style.transform=`translate3d(${centerOffset()}px,0,0)`;};
     const go=index=>{
       active=Math.max(0,Math.min(index,slides.length-1));
       slides.forEach((slide,i)=>{
         const selected=i===active;
         slide.classList.toggle('is-active',selected);
         slide.setAttribute('aria-current',String(selected));
+        slide.setAttribute('aria-label',`${i+1}. düğün fotoğrafını ${selected?'büyüt':'seç'}`);
         slide.tabIndex=selected?0:-1;
       });
       count.textContent=String(active+1).padStart(2,'0');
@@ -42,25 +43,31 @@ document.addEventListener('DOMContentLoaded',()=>{
     },true);
     viewport.addEventListener('pointerdown',event=>{
       if(event.button!==0&&event.pointerType==='mouse')return;
-      dragStart={x:event.clientX,y:event.clientY,id:event.pointerId};
+      dragStart={x:event.clientX,y:event.clientY,id:event.pointerId,base:centerOffset()};
       dragging=false;
     });
     viewport.addEventListener('pointermove',event=>{
       if(!dragStart||dragStart.id!==event.pointerId)return;
       const dx=event.clientX-dragStart.x,dy=event.clientY-dragStart.y;
-      if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy))dragging=true;
+      if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)){
+        if(!dragging){dragging=true;track.classList.add('is-dragging');viewport.setPointerCapture?.(event.pointerId);}
+        const edge=(active===0&&dx>0)||(active===slides.length-1&&dx<0);
+        track.style.transform=`translate3d(${dragStart.base+dx*(edge?.35:1)}px,0,0)`;
+      }
     });
     viewport.addEventListener('pointerup',event=>{
       if(!dragStart||dragStart.id!==event.pointerId)return;
       const dx=event.clientX-dragStart.x;
-      if(dragging&&Math.abs(dx)>45){
+      if(dragging){
+        track.classList.remove('is-dragging');
         suppressClick=true;
-        go(active+(dx<0?1:-1));
+        if(Math.abs(dx)>45)go(active+(dx<0?1:-1));
+        else center();
         window.setTimeout(()=>{suppressClick=false;},120);
       }
       dragStart=null;dragging=false;
     });
-    viewport.addEventListener('pointercancel',()=>{dragStart=null;dragging=false;});
+    viewport.addEventListener('pointercancel',()=>{track.classList.remove('is-dragging');dragStart=null;dragging=false;center();});
     viewport.addEventListener('wheel',event=>{
       const delta=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:0;
       if(Math.abs(delta)<25||wheelLocked)return;
@@ -82,4 +89,20 @@ document.addEventListener('DOMContentLoaded',()=>{
     else window.addEventListener('resize',center,{passive:true});
     go(0);
   });
+  const lightbox=document.querySelector('.page-hizmet-dugun .lightbox');
+  const lightboxPhoto=lightbox?.querySelector('figure');
+  let lightboxStart=null;
+  lightboxPhoto?.addEventListener('pointerdown',event=>{
+    lightboxStart={x:event.clientX,y:event.clientY,id:event.pointerId};
+    lightboxPhoto.setPointerCapture?.(event.pointerId);
+  });
+  lightboxPhoto?.addEventListener('pointerup',event=>{
+    if(!lightboxStart||lightboxStart.id!==event.pointerId)return;
+    const dx=event.clientX-lightboxStart.x,dy=event.clientY-lightboxStart.y;
+    if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)){
+      lightbox.querySelector(dx<0?'.lightbox-next':'.lightbox-prev')?.click();
+    }
+    lightboxStart=null;
+  });
+  lightboxPhoto?.addEventListener('pointercancel',()=>{lightboxStart=null;});
 });
