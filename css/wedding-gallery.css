@@ -22,6 +22,7 @@
 .page-hizmet-dugun .wedding-slide.is-active:hover .wedding-slide-zoom{background:rgba(18,49,35,.94)}
 .page-hizmet-dugun .wedding-slide:focus-visible{outline:3px solid #a47639;outline-offset:5px}
 .page-hizmet-dugun .lightbox figure{touch-action:pan-y;user-select:none}
+.page-hizmet-dugun .lightbox-previous-image[hidden]{display:none}
 .page-hizmet-dugun .wedding-carousel-controls{display:flex;align-items:center;justify-content:center;gap:17px;position:relative;z-index:2;width:fit-content;max-width:calc(100% - 32px);margin:18px auto 0;padding:8px 12px;border:1px solid rgba(178,139,83,.42);border-radius:999px;background:rgba(255,251,243,.93);box-shadow:0 12px 32px rgba(60,44,24,.12)}
 .page-hizmet-dugun .wedding-carousel-controls button{display:grid;place-items:center;flex:none;border:1px solid #b98d54;border-radius:50%;width:48px;height:48px;color:#1d2a20;background:linear-gradient(135deg,#e9d4ae,#c99f65);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 5px 13px rgba(75,52,21,.14);cursor:pointer;transition:background .25s,color .25s,transform .25s,box-shadow .25s}
 .page-hizmet-dugun .wedding-carousel-controls button .icon{width:19px;height:19px}
@@ -45,6 +46,7 @@
  .page-hizmet-dugun .wedding-gallery-hint{margin:0;font-size:.6rem}
  .page-hizmet-dugun .wedding-gallery-hint .hint-desktop{display:none}
  .page-hizmet-dugun .wedding-gallery-hint .hint-mobile{display:inline}
+ .page-hizmet-dugun .wedding-carousel-backdrop{display:none}
  .page-hizmet-dugun .wedding-carousel-viewport{height:min(120vw,530px)}
  .page-hizmet-dugun .wedding-carousel-track{gap:12px}
  .page-hizmet-dugun .wedding-slide{width:min(74vw,340px);height:min(95vw,390px)}
@@ -52,6 +54,11 @@
  .page-hizmet-dugun .wedding-slide-zoom{left:9px;right:9px;bottom:9px;min-height:39px;font-size:.59rem}
  .page-hizmet-dugun .wedding-carousel-controls{margin-top:12px;gap:13px;padding:7px 10px}
  .page-hizmet-dugun .wedding-carousel-controls button{width:44px;height:44px}
+ .page-hizmet-dugun .wedding-lightbox{padding:62px 14px 42px}
+ .page-hizmet-dugun .wedding-lightbox figure{position:relative;display:block;width:100%;height:calc(100dvh - 104px);max-height:none}
+ .page-hizmet-dugun .wedding-lightbox figure>img{position:absolute;top:calc(50% - 16px);left:50%;width:auto;height:auto;max-width:100%;max-height:calc(100% - 38px);object-fit:contain;transform:translate(-50%,-50%)}
+ .page-hizmet-dugun .wedding-lightbox figure>.lightbox-previous-image{z-index:2;pointer-events:none}
+ .page-hizmet-dugun .wedding-lightbox figcaption{position:absolute;right:0;bottom:0;left:0;z-index:3;margin:0;text-align:center;font-size:.75rem;line-height:1.4}
  .page-hizmet-dugun .wedding-cta .dark-cta-actions{justify-content:stretch}
  .page-hizmet-dugun .wedding-cta .dark-cta-actions .btn{width:100%}
 }

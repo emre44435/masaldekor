@@ -61,14 +61,70 @@ document.addEventListener('DOMContentLoaded',()=>{
   const items=[...document.querySelectorAll('.gallery-item, [data-service-slide]')];
   const box=document.querySelector('.lightbox');
   const boxImg=box?.querySelector('img');const caption=box?.querySelector('figcaption');
-  let current=0;let lastFocus=null;
+  const previousImage=box?.querySelector('.lightbox-previous-image');
+  let current=0;let lastFocus=null;let transitionToken=0;
   const visible=()=>items.filter(item=>!item.hidden);
   filters.forEach(button=>button.addEventListener('click',()=>{
     filters.forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
     items.forEach(item=>item.hidden=button.dataset.filter!=='Tümü'&&item.dataset.category!==button.dataset.filter);
   }));
-  function show(index){const list=visible();if(!list.length)return;current=(index+list.length)%list.length;const item=list[current];boxImg.src=item.dataset.src;boxImg.alt=item.dataset.caption;caption.textContent=item.dataset.caption;}
-  function close(){if(!box)return;box.hidden=true;document.body.style.overflow='';boxImg.removeAttribute('src');lastFocus?.focus();}
+  function show(index){
+    const list=visible();if(!list.length||!boxImg)return;
+    const sourceIndex=current;
+    current=(index+list.length)%list.length;
+    const item=list[current];
+    const previousSrc=boxImg.getAttribute('src');
+    const previousAlt=boxImg.alt;
+    caption.textContent=item.dataset.caption;
+    const animate=box?.classList.contains('wedding-lightbox')&&previousImage&&previousSrc&&
+      previousSrc!==item.dataset.src&&window.matchMedia('(max-width:767px)').matches&&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches&&
+      typeof boxImg.animate==='function'&&typeof previousImage.animate==='function';
+    const token=++transitionToken;
+    if(!animate){
+      boxImg.getAnimations?.().forEach(animation=>animation.cancel());
+      previousImage?.getAnimations?.().forEach(animation=>animation.cancel());
+      if(previousImage){previousImage.hidden=true;previousImage.removeAttribute('src');}
+      boxImg.src=item.dataset.src;boxImg.alt=item.dataset.caption;
+      return;
+    }
+    boxImg.getAnimations?.().forEach(animation=>animation.cancel());
+    previousImage.getAnimations?.().forEach(animation=>animation.cancel());
+    previousImage.hidden=true;previousImage.removeAttribute('src');
+    const direction=index>sourceIndex?1:-1;
+    const preload=new Image();preload.src=item.dataset.src;
+    const ready=typeof preload.decode==='function'?preload.decode().catch(()=>{}):
+      new Promise(resolve=>{if(preload.complete)resolve();else{preload.onload=resolve;preload.onerror=resolve;}});
+    ready.then(()=>{
+      if(token!==transitionToken||box.hidden)return;
+      boxImg.getAnimations?.().forEach(animation=>animation.cancel());
+      previousImage.getAnimations?.().forEach(animation=>animation.cancel());
+      previousImage.src=previousSrc;previousImage.alt=previousAlt;previousImage.hidden=false;
+      boxImg.src=item.dataset.src;boxImg.alt=item.dataset.caption;
+      const options={duration:390,easing:'cubic-bezier(.22,.68,.2,1)',fill:'both'};
+      const outgoing=previousImage.animate([
+        {opacity:1,transform:'translate(-50%,-50%) translateX(0) scale(1)'},
+        {opacity:0,transform:`translate(-50%,-50%) translateX(${-direction*26}px) scale(.985)`}
+      ],options);
+      const incoming=boxImg.animate([
+        {opacity:0,transform:`translate(-50%,-50%) translateX(${direction*30}px) scale(.985)`},
+        {opacity:1,transform:'translate(-50%,-50%) translateX(0) scale(1)'}
+      ],options);
+      Promise.allSettled([outgoing.finished,incoming.finished]).then(()=>{
+        if(token!==transitionToken)return;
+        outgoing.cancel();incoming.cancel();
+        previousImage.hidden=true;previousImage.removeAttribute('src');
+      });
+    });
+  }
+  function close(){
+    if(!box)return;
+    transitionToken++;
+    boxImg?.getAnimations?.().forEach(animation=>animation.cancel());
+    previousImage?.getAnimations?.().forEach(animation=>animation.cancel());
+    if(previousImage){previousImage.hidden=true;previousImage.removeAttribute('src');}
+    box.hidden=true;document.body.style.overflow='';boxImg.removeAttribute('src');lastFocus?.focus();
+  }
   items.forEach(item=>item.addEventListener('click',event=>{if(event.defaultPrevented||!box)return;lastFocus=item;box.hidden=false;document.body.style.overflow='hidden';show(visible().indexOf(item));box.querySelector('.lightbox-close').focus();}));
   box?.querySelector('.lightbox-close').addEventListener('click',close);
   box?.querySelector('.lightbox-prev').addEventListener('click',()=>show(current-1));
