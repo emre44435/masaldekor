@@ -16,13 +16,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const rows=await response.json();
     if(!Array.isArray(rows))throw new Error('Gallery response');
     const source=value=>/^https:\/\//i.test(value)?value:new URL(value,document.baseURI).href;
-    const hero=document.querySelector('[data-gallery-hero]');
-    if(hero&&rows.length){
-      hero.src=source(rows[0].image_url);
-      hero.alt=rows[0].alt_text||hero.alt;
-      hero.width=rows[0].image_width||1200;
-      hero.height=rows[0].image_height||1800;
-    }else if(hero&&!rows.length){hero.removeAttribute('src');hero.hidden=true;}
+    // The editorial cover is independent from the admin gallery order.
+    // Reordering photos must never replace the wedding or henna hero image.
     if(carousel){
       const track=carousel.querySelector('[data-carousel-track]');
       const service=carousel.dataset.serviceName||'organizasyon';

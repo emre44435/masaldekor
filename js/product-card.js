@@ -1,5 +1,8 @@
 window.MASAL_PRODUCT_CARD = (row, categoryLabel, assetUrl) => {
-  const title = (row.item_title || row.alt_text || categoryLabel).trim();
+  const rawTitle = (row.item_title || row.alt_text || categoryLabel).trim();
+  const cleanedTitle = rawTitle.replace(/\b\d{3,4}\s*[x×]\s*\d{3,4}(?:\s*px)?\b/gi, '')
+    .replace(/^masal\s+(?:çiçekçilik|cicekcilik)\s+/i, '').replace(/\s{2,}/g, ' ').trim();
+  const title = cleanedTitle ? cleanedTitle[0].toLocaleUpperCase('tr-TR') + cleanedTitle.slice(1) : categoryLabel;
   const article = document.createElement('article');
   article.className = 'flower-product-card';
   const imageButton = document.createElement('button');

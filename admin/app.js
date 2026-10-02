@@ -165,7 +165,9 @@
         uploaded = await upload(file);
         const { error } = await client.from('gallery_photos').insert({
           category: category.slug, image_url: uploaded.url, storage_path: uploaded.path,
-          alt_text: `${category.label} fotoğrafı`, item_title: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').slice(0, 120), image_width: uploaded.width,
+          alt_text: `${category.label} fotoğrafı`, item_title: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
+            .replace(/\b\d{3,4}\s*[x×]\s*\d{3,4}(?:\s*px)?\b/gi, '')
+            .replace(/^masal\s+(?:çiçekçilik|cicekcilik)\s+/i, '').replace(/\s{2,}/g, ' ').trim().slice(0, 120), image_width: uploaded.width,
           image_height: uploaded.height, sort_order: photos.length + 1
         });
         if (error) throw error;

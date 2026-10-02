@@ -13,9 +13,9 @@
 :is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-carousel-track.is-dragging{transition:none}
 :is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide{position:relative;flex:none;width:clamp(260px,30vw,380px);height:clamp(360px,37vw,460px);padding:0;border:1px solid rgba(161,126,75,.38);background:#efe9df;box-shadow:0 10px 30px rgba(49,39,27,.13);overflow:hidden;cursor:grab;transition:height .65s cubic-bezier(.2,.7,.2,1),box-shadow .45s,border-color .45s,opacity .45s;opacity:.86}
 :is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide:active{cursor:grabbing}
-:is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;user-select:none;pointer-events:none}
+:is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;user-select:none;pointer-events:none}
 :is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide.is-active{height:clamp(430px,50vw,570px);border:5px solid #fffaf0;outline:1px solid #bc945b;box-shadow:0 22px 55px rgba(49,39,27,.24);opacity:1}
-:is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide.is-active img{object-fit:cover;object-position:center}
+:is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide.is-active img{object-fit:contain;object-position:center}
 :is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide-zoom{position:absolute;left:12px;right:12px;bottom:12px;display:flex;align-items:center;justify-content:center;gap:9px;min-height:43px;padding:8px 10px;border:1px solid rgba(234,209,163,.67);border-radius:3px;background:rgba(19,39,29,.83);color:#fff9ee;box-shadow:0 8px 24px rgba(9,18,13,.22);font-size:.63rem;font-weight:700;letter-spacing:.13em;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .3s,transform .3s}
 :is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide-zoom svg{width:19px;height:19px;color:#e3c186;flex:none}
 :is(.page-hizmet-dugun,.page-hizmet-kina) .wedding-slide.is-active .wedding-slide-zoom{opacity:1;transform:none}
