@@ -2,20 +2,23 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-service-carousel]').forEach(carousel=>{
     const viewport=carousel.querySelector('.wedding-carousel-viewport');
     const track=carousel.querySelector('[data-carousel-track]');
-    const slides=[...carousel.querySelectorAll('[data-service-slide]')];
+    let slides=[...carousel.querySelectorAll('[data-service-slide]')];
     const serviceName=carousel.dataset.serviceName||'düğün';
     const previous=carousel.querySelector('[data-carousel-prev]');
     const next=carousel.querySelector('[data-carousel-next]');
     const count=carousel.querySelector('[data-carousel-current]');
-    if(!viewport||!track||!slides.length)return;
+    const total=carousel.querySelector('[data-carousel-total]');
+    if(!viewport||!track)return;
     let active=0,dragStart=null,dragging=false,suppressClick=false,wheelLocked=false;
     const centerOffset=()=>{
       const slide=slides[active];
+      if(!slide)return 0;
       return viewport.clientWidth/2-slide.offsetLeft-slide.offsetWidth/2;
     };
     const center=()=>{track.style.transform=`translate3d(${centerOffset()}px,0,0)`;};
     const go=index=>{
       active=Math.max(0,Math.min(index,slides.length-1));
+      if(!slides.length){count.textContent='00';if(total)total.textContent='00';previous.disabled=true;next.disabled=true;return;}
       slides.forEach((slide,i)=>{
         const selected=i===active;
         slide.classList.toggle('is-active',selected);
@@ -24,6 +27,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         slide.tabIndex=selected?0:-1;
       });
       count.textContent=String(active+1).padStart(2,'0');
+      if(total)total.textContent=String(slides.length).padStart(2,'0');
       previous.disabled=active===0;
       next.disabled=active===slides.length-1;
       carousel.style.setProperty('--wedding-backdrop',`url("${slides[active].dataset.src}")`);
@@ -31,12 +35,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     };
     previous.addEventListener('click',()=>go(active-1));
     next.addEventListener('click',()=>go(active+1));
-    slides.forEach((slide,i)=>slide.addEventListener('click',event=>{
+    const bindSlides=()=>slides.forEach((slide,i)=>slide.addEventListener('click',event=>{
       if(i===active)return;
       event.preventDefault();
       go(i);
       slide.focus({preventScroll:true});
     }));
+    bindSlides();
+    carousel.addEventListener('gallery:updated',()=>{
+      slides=[...carousel.querySelectorAll('[data-service-slide]')];
+      bindSlides();
+      go(0);
+    });
     carousel.addEventListener('click',event=>{
       if(!suppressClick)return;
       event.preventDefault();event.stopImmediatePropagation();

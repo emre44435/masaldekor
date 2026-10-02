@@ -58,17 +58,17 @@ document.addEventListener('DOMContentLoaded',()=>{
     range.addEventListener('input',()=>setPosition(Number(range.value)));
   });
   const filters=[...document.querySelectorAll('[data-filter]')];
-  const items=[...document.querySelectorAll('.gallery-item, [data-service-slide]')];
+  const items=()=>[...document.querySelectorAll('.gallery-item, [data-service-slide]')];
   const box=document.querySelector('.lightbox');
   const boxImg=box?.querySelector('img');const caption=box?.querySelector('figcaption');
   const previousImage=box?.querySelector('.lightbox-previous-image');
   const weddingLightbox=box?.classList.contains('wedding-lightbox');
   const weddingHistoryKey='masalWeddingLightbox';
   let current=0;let lastFocus=null;let transitionToken=0;let weddingHistoryEntry=false;
-  const visible=()=>items.filter(item=>!item.hidden);
+  const visible=()=>items().filter(item=>!item.hidden);
   filters.forEach(button=>button.addEventListener('click',()=>{
     filters.forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
-    items.forEach(item=>item.hidden=button.dataset.filter!=='Tümü'&&item.dataset.category!==button.dataset.filter);
+    items().forEach(item=>item.hidden=button.dataset.filter!=='Tümü'&&item.dataset.category!==button.dataset.filter);
   }));
   function show(index){
     const list=visible();if(!list.length||!boxImg)return;
@@ -134,7 +134,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     closeOverlay();
     if(restoreHistory)window.history?.back();
   }
-  items.forEach(item=>item.addEventListener('click',event=>{
+  const boundItems=new WeakSet();
+  function openItem(event,item){
     if(event.defaultPrevented||!box)return;
     if(weddingLightbox&&box.hidden&&window.history?.pushState){
       try{window.history.pushState({[weddingHistoryKey]:true},'');weddingHistoryEntry=true;}
@@ -142,7 +143,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     lastFocus=item;box.hidden=false;document.body.style.overflow='hidden';
     show(visible().indexOf(item));box.querySelector('.lightbox-close').focus();
-  }));
+  }
+  items().forEach(item=>{boundItems.add(item);item.addEventListener('click',event=>openItem(event,item));});
+  document.addEventListener('click',event=>{
+    const item=event.target.closest?.('.gallery-item, [data-service-slide]');
+    if(item&&!boundItems.has(item))openItem(event,item);
+  });
   if(weddingLightbox)window.addEventListener('popstate',event=>{
     if(event.state?.[weddingHistoryKey]){
       weddingHistoryEntry=true;
