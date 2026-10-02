@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   url.searchParams.set('category',`eq.${category}`);
   url.searchParams.set('order','sort_order.asc,created_at.asc,id.asc');
   try{
-    const response=await fetch(url,{cache:'no-store',headers:{apikey:config.publishableKey,Accept:'application/json'}});
+    const response=await fetch(url,{cache:'default',headers:{apikey:config.publishableKey,Accept:'application/json'}});
     if(!response.ok)throw new Error(`Gallery ${response.status}`);
     const responseRows=await response.json();
     if(!Array.isArray(responseRows))throw new Error('Gallery response');

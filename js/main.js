@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (!img) return;
     const stage = document.createElement('span');
     stage.className = 'catalog-media';
-    stage.style.setProperty('--catalog-image', `url("${img.src.replaceAll('"', '%22')}")`);
     img.before(stage);
     stage.append(img);
   };
