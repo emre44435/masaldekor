@@ -1,5 +1,7 @@
 window.MASAL_PRODUCT_CARD = (row, categoryLabel, assetUrl) => {
-  const rawTitle = (row.item_title || row.alt_text || categoryLabel).trim();
+  const entry = window.MASAL_PRODUCT_DATA?.[row.id];
+  const curated = entry?.source === row.image_url ? entry : null;
+  const rawTitle = (curated?.title || row.item_title || row.alt_text || categoryLabel).trim();
   const cleanedTitle = rawTitle.replace(/\b\d{3,4}\s*[x×]\s*\d{3,4}(?:\s*px)?\b/gi, '')
     .replace(/^masal\s+(?:çiçekçilik|cicekcilik)\s+/i, '').replace(/\s{2,}/g, ' ').trim();
   const title = cleanedTitle ? cleanedTitle[0].toLocaleUpperCase('tr-TR') + cleanedTitle.slice(1) : categoryLabel;
@@ -7,12 +9,12 @@ window.MASAL_PRODUCT_CARD = (row, categoryLabel, assetUrl) => {
   article.className = 'flower-product-card';
   const imageButton = document.createElement('button');
   imageButton.type = 'button'; imageButton.className = 'gallery-item flower-product-image';
-  imageButton.dataset.src = assetUrl(row.image_url);
+  imageButton.dataset.src = curated?.asset ? new URL(curated.asset, document.baseURI).href : assetUrl(row.image_url);
   imageButton.dataset.caption = title;
   imageButton.setAttribute('aria-label', `${title} görselini büyüt`);
   const image = document.createElement('img');
   image.src = imageButton.dataset.src;
-  image.alt = row.alt_text || `${title} — Masal Dekor Darende`;
+  image.alt = `${title} — Masal Dekor Darende`;
   image.width = row.image_width || 1200; image.height = row.image_height || 1800;
   image.loading = 'lazy'; image.decoding = 'async';
   imageButton.append(image);
@@ -26,7 +28,8 @@ window.MASAL_PRODUCT_CARD = (row, categoryLabel, assetUrl) => {
   const group = document.createElement('small'); group.textContent = categoryLabel;
   const heading = document.createElement('h3'); heading.textContent = title;
   const description = document.createElement('p');
-  description.textContent = row.item_description || 'Çiçek seçimi ve hazırlık ayrıntıları için bize yazın.';
+  description.textContent = row.item_description || '';
+  if (!description.textContent) description.hidden = true;
   const actions = document.createElement('div'); actions.className = 'flower-product-actions';
   const message = `Merhaba Masal Dekor, ${title} hakkında bilgi ve sipariş koşullarını öğrenmek istiyorum. Ürün: ${location.href}`;
   const order = document.createElement('a');

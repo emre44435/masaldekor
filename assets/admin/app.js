@@ -25,6 +25,12 @@
     busy = value;
     saveButton.disabled = value || !dirty;
     $('#add-files').disabled = value;
+    $('#save-suggested-titles').disabled = value;
+    $('#remove-duplicate-photos').disabled = value;
+  }
+  function curated(photo) {
+    const data = window.MASAL_PRODUCT_DATA?.[photo.id];
+    return data?.source === photo.image_url ? data : null;
   }
   function photoUrl(url) {
     if (/^https:\/\//i.test(url)) return url;
@@ -45,12 +51,12 @@
     const drag = document.createElement('button'); drag.type = 'button'; drag.className = 'drag-handle'; drag.textContent = '☷  Tutup sürükleyin';
     top.append(number, drag);
     const image = document.createElement('img');
-    image.src = photoUrl(photo.image_url); image.alt = photo.alt_text || `${category.label} fotoğrafı`;
+    image.src = photoUrl(curated(photo)?.asset || photo.image_url); image.alt = photo.alt_text || `${category.label} fotoğrafı`;
     image.width = photo.image_width || 1200; image.height = photo.image_height || 1800;
     image.loading = 'lazy'; image.decoding = 'async';
     const caption = document.createElement('label'); caption.className = 'photo-caption'; caption.textContent = 'Ürün / görsel adı';
     const titleInput = document.createElement('input'); titleInput.className = 'item-title'; titleInput.maxLength = 120;
-    titleInput.value = photo.item_title || ''; titleInput.placeholder = 'Örn. Beyaz gül buketi';
+    titleInput.value = curated(photo)?.title || photo.item_title || ''; titleInput.placeholder = 'Örn. Beyaz gül buketi';
     caption.append(titleInput);
     let productFields = [];
     if (category.kind === 'cicekcilik') {
@@ -105,6 +111,10 @@
       .eq('category', slug).order('sort_order', { ascending: true }).order('created_at', { ascending: true }).order('id', { ascending: true });
     if (error) { list.textContent = ''; fail(error); return; }
     photos = data || []; renderPhotos();
+    const suggestions = photos.filter(photo => curated(photo)?.title && photo.item_title !== curated(photo).title);
+    const duplicates = photos.filter(photo => curated(photo)?.duplicate);
+    $('#save-suggested-titles').hidden = category.kind !== 'cicekcilik' || !suggestions.length;
+    $('#remove-duplicate-photos').hidden = category.kind !== 'cicekcilik' || !duplicates.length;
   }
   async function saveOrder() {
     if (!dirty || busy) return true;
@@ -131,14 +141,14 @@
     if (file.size > 15 * 1024 * 1024) throw new Error('Fotoğraf en fazla 15 MB olabilir.');
     const original = await dimensions(file);
     if (!original.width || !original.height) throw new Error('Fotoğraf okunamadı.');
-    if (file.size <= 8 * 1024 * 1024 && Math.max(original.width, original.height) <= 2600) {
+    if (file.type === 'image/webp' && file.size <= 8 * 1024 * 1024 && Math.max(original.width, original.height) <= 2600) {
       return { file, width: original.width, height: original.height, extension: types[file.type] };
     }
-    const scale = Math.min(1, 2600 / Math.max(original.width, original.height));
+    const scale = Math.min(1, 1800 / Math.max(original.width, original.height));
     const width = Math.round(original.width * scale), height = Math.round(original.height * scale);
     const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
     canvas.getContext('2d').drawImage(original.image, 0, 0, width, height);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', .9));
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', .8));
     canvas.width = canvas.height = 0;
     if (!blob) throw new Error('Fotoğraf işlenemedi.');
     if (blob.size > 15 * 1024 * 1024) throw new Error('İşlenen fotoğraf 15 MB sınırını aşıyor.');
@@ -154,6 +164,12 @@
     const { data } = client.storage.from('gallery-photos').getPublicUrl(path);
     return { path, url: data.publicUrl, width: prepared.width, height: prepared.height };
   }
+  function titleFromFile(filename) {
+    const title = filename.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
+      .replace(/\b\d{3,4}\s*[x×]\s*\d{3,4}(?:\s*px)?\b/gi, '')
+      .replace(/^masal\s+(?:çiçekçilik|cicekcilik)\s+/i, '').replace(/\s{2,}/g, ' ').trim();
+    return /^[0-9a-f]{8}(?:\s+[0-9a-f]{4}){3}\s+[0-9a-f]{12}$/i.test(title) ? '' : title.slice(0, 120);
+  }
   async function addFiles(files) {
     if (busy || !files.length) return;
     if (!(await saveOrder())) return;
@@ -165,9 +181,7 @@
         uploaded = await upload(file);
         const { error } = await client.from('gallery_photos').insert({
           category: category.slug, image_url: uploaded.url, storage_path: uploaded.path,
-          alt_text: `${category.label} fotoğrafı`, item_title: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
-            .replace(/\b\d{3,4}\s*[x×]\s*\d{3,4}(?:\s*px)?\b/gi, '')
-            .replace(/^masal\s+(?:çiçekçilik|cicekcilik)\s+/i, '').replace(/\s{2,}/g, ' ').trim().slice(0, 120), image_width: uploaded.width,
+          alt_text: `${category.label} fotoğrafı`, item_title: titleFromFile(file.name), image_width: uploaded.width,
           image_height: uploaded.height, sort_order: photos.length + 1
         });
         if (error) throw error;
@@ -330,6 +344,43 @@
   });
   $('#add-files').addEventListener('change', event => {
     const files = [...event.target.files]; event.target.value = ''; addFiles(files);
+  });
+  $('#save-suggested-titles').addEventListener('click', async () => {
+    if (busy || !category || !(await saveOrder())) return;
+    const candidates = photos.filter(photo => curated(photo)?.title && photo.item_title !== curated(photo).title);
+    if (!candidates.length) return;
+    setBusy(true);
+    let saved = 0;
+    for (const photo of candidates) {
+      const title = curated(photo).title;
+      const { error } = await client.from('gallery_photos').update({
+        item_title: title, item_description: '', alt_text: `${title} — Masal Dekor Darende`
+      }).eq('id', photo.id).eq('category', category.slug);
+      if (error) { fail(error); break; }
+      photo.item_title = title; photo.item_description = ''; saved++;
+    }
+    setBusy(false);
+    await loadCategory(category.slug);
+    if (saved) message(`${saved} ürün adı kaydedildi.`);
+  });
+  $('#remove-duplicate-photos').addEventListener('click', async () => {
+    if (busy || !category || !(await saveOrder())) return;
+    const duplicates = photos.filter(photo => curated(photo)?.duplicate);
+    if (!duplicates.length || !confirm(`${duplicates.length} tekrar eden fotoğrafı galeriden ve depolamadan silmek istiyor musunuz?`)) return;
+    setBusy(true);
+    let deleted = 0;
+    for (const photo of duplicates) {
+      const { error } = await client.from('gallery_photos').delete().eq('id', photo.id).eq('category', category.slug);
+      if (error) { fail(error); break; }
+      if (photo.storage_path) {
+        const removed = await client.storage.from('gallery-photos').remove([photo.storage_path]);
+        if (removed.error) { fail(removed.error); break; }
+      }
+      deleted++;
+    }
+    setBusy(false);
+    await loadCategory(category.slug);
+    if (deleted) message(`${deleted} tekrar eden fotoğraf silindi.`);
   });
   saveButton.addEventListener('click', saveOrder);
   list.addEventListener('click', event => {

@@ -47,8 +47,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   try{
     const response=await fetch(url,{cache:'no-store',headers:{apikey:config.publishableKey,Accept:'application/json'}});
     if(!response.ok)throw new Error(`Gallery ${response.status}`);
-    const rows=await response.json();
-    if(!Array.isArray(rows))throw new Error('Gallery response');
+    const responseRows=await response.json();
+    if(!Array.isArray(responseRows))throw new Error('Gallery response');
+    const rows=responseRows.filter(row=>{
+      const curated=window.MASAL_PRODUCT_DATA?.[row.id];
+      return !(curated?.duplicate && curated.source===row.image_url);
+    });
     const source=value=>/^https:\/\//i.test(value)?value:new URL(value,document.baseURI).href;
     // The editorial cover is independent from the admin gallery order.
     // Reordering photos must never replace the wedding or henna hero image.

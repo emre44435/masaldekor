@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const gallery = document.querySelector('#dynamic-gallery');
   if (!gallery) return;
   const slug = new URLSearchParams(location.search).get('slug') || '';
+  if (['kurumsal', 'konsept'].includes(slug)) { location.replace('hizmetler.html'); return; }
   const showError = text => {
     document.querySelector('#dynamic-title').textContent = 'Kategori bulunamadı';
     document.querySelector('#dynamic-summary').textContent = text;
@@ -38,7 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('meta[property="og:url"]').content = canonical;
 
     const photoUrl = new URL(endpoint + 'gallery_photos');
-    photoUrl.searchParams.set('select', 'image_url,alt_text,item_title,item_description,same_day_available,image_width,image_height');
+    photoUrl.searchParams.set('select', 'id,image_url,alt_text,item_title,item_description,same_day_available,image_width,image_height');
     photoUrl.searchParams.set('category', `eq.${slug}`);
     photoUrl.searchParams.set('order', 'sort_order.asc,created_at.asc,id.asc');
     const photoResponse = await fetch(photoUrl, {headers});
@@ -51,7 +52,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       gallery.replaceChildren(empty); return;
     }
     gallery.classList.toggle('flower-product-grid', category.kind === 'cicekcilik');
-    const cards = rows.map((row, index) => {
+    const cards = rows.filter(row => {
+      const curated = window.MASAL_PRODUCT_DATA?.[row.id];
+      return !(curated?.duplicate && curated.source === row.image_url);
+    }).map((row, index) => {
       if (category.kind === 'cicekcilik' && window.MASAL_PRODUCT_CARD) {
         return window.MASAL_PRODUCT_CARD(row, category.label, assetUrl);
       }

@@ -1,0 +1,5 @@
+.section-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.curated-action{font-size:12px;padding:10px 13px;border:1px solid #b8a37c;border-radius:8px;background:#fffdf8;color:#17362a;font-weight:700}
+.curated-action:hover{background:#edf3ee}
+.curated-action[hidden]{display:none}
+@media(max-width:680px){.section-actions{display:grid;width:100%}.curated-action{width:100%}}
