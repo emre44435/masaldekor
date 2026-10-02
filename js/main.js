@@ -1,4 +1,19 @@
 document.addEventListener('DOMContentLoaded',()=>{
+  const prepareCatalogImage = card => {
+    const img = card.querySelector(':scope > .catalog-photo');
+    if (!img) return;
+    const stage = document.createElement('span');
+    stage.className = 'catalog-media';
+    stage.style.setProperty('--catalog-image', `url("${img.src.replaceAll('"', '%22')}")`);
+    img.before(stage);
+    stage.append(img);
+  };
+  document.querySelectorAll('.catalog-card.has-photo').forEach(prepareCatalogImage);
+  document.querySelectorAll('[data-category-grid]').forEach(grid => new MutationObserver(records => {
+    records.forEach(record => record.addedNodes.forEach(node => {
+      if (node.nodeType === 1 && node.matches?.('.catalog-card.has-photo')) prepareCatalogImage(node);
+    }));
+  }).observe(grid, {childList:true}));
   const header=document.querySelector('.site-header');
   const onScroll=()=>header?.classList.toggle('scrolled',window.scrollY>8);
   onScroll();window.addEventListener('scroll',onScroll,{passive:true});

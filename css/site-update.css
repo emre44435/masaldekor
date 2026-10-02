@@ -22,6 +22,7 @@
 .page-index .comparison-heading .section-heading{text-align:center;margin-inline:auto}
 .page-index .home-services{padding-top:clamp(45px,6vw,80px)}
 .services-showcase{padding-top:clamp(45px,6vw,80px)!important}
+.services-showcase .catalog-group:first-child{margin-top:0}
 .catalog-group-heading h3{font-size:clamp(1.9rem,3.2vw,3rem);line-height:1.12}
 .catalog-grid{align-items:stretch}
 .catalog-card{display:flex;flex-direction:column;aspect-ratio:auto!important;min-height:0;background:#fff;color:#193428;border:1px solid #e4d7c0;border-radius:13px;box-shadow:0 12px 28px #263c2c12}
@@ -71,3 +72,40 @@
  .agency-credit{white-space:normal;width:max-content;max-width:100%}
 }
 @media(max-width:380px){.home-discovery .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* The same image stage is used for local cards and Supabase cards. */
+.page-index .catalog-grid[data-category-grid="organizasyon"],.page-hizmetler .catalog-grid[data-category-grid="organizasyon"]{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1280px;margin-inline:auto}
+.catalog-card{min-width:0;overflow:hidden}
+.catalog-media{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:3/2;overflow:hidden;background:#e9e3d8;isolation:isolate}
+.catalog-media::before{content:"";position:absolute;inset:-12px;background-image:var(--catalog-image);background-size:cover;background-position:center;filter:blur(16px);opacity:.38;z-index:-1}
+.catalog-card.has-photo .catalog-media .catalog-photo{position:relative;display:block;width:100%;height:100%;aspect-ratio:auto;object-fit:contain;object-position:center;background:transparent;z-index:1}
+.catalog-card.has-photo .catalog-media .catalog-photo{position:absolute;inset:0;width:100%;height:100%!important;min-height:0;max-height:100%;object-fit:contain}
+.catalog-card-content{width:100%;box-sizing:border-box}
+.catalog-card-content strong{overflow-wrap:anywhere}
+.catalog-description{min-height:0}
+.page-index .comparison-eyebrow::before{display:none}
+.home-discovery .quick-icon .icon-car,.home-discovery .quick-icon .icon-flowers{width:78px;height:78px;object-fit:contain}
+.page-hakkimizda .split-copy{max-width:680px}
+.page-hakkimizda .split-copy p{font-size:clamp(.96rem,1.25vw,1.08rem);line-height:1.72;margin:0 0 15px;color:#455149}
+.page-hakkimizda .story-copy h2{font-size:clamp(1.7rem,2.7vw,2.8rem);line-height:1.15;margin:0 0 16px}
+.page-hakkimizda .story-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:center}
+.page-hakkimizda .story-values{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;border:0;padding:0}
+.page-hakkimizda .story-values article{margin:0;padding:22px;border:1px solid #e5d8c3;background:#fffdf8}
+@media(max-width:900px){.page-index .catalog-grid[data-category-grid="organizasyon"],.page-hizmetler .catalog-grid[data-category-grid="organizasyon"]{grid-template-columns:repeat(2,minmax(0,1fr))}.page-hakkimizda .story-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.catalog-media{aspect-ratio:2/3}.catalog-card.has-photo .catalog-media .catalog-photo{height:100%;width:100%;object-fit:contain}.home-discovery .quick-icon .icon-car,.home-discovery .quick-icon .icon-flowers{width:53px;height:53px}.page-hakkimizda .story-values{grid-template-columns:1fr}.page-hakkimizda .split-image img,.page-hakkimizda .story-image img{object-fit:contain;height:auto;aspect-ratio:auto}}
+@media(max-width:390px){.catalog-card-content{padding:10px}.catalog-card-content strong{font-size:1rem}}
+/* About page grows with its copy instead of clipping it into a 300 px strip. */
+.page-hakkimizda .split-hero{height:auto;min-height:470px;padding:0}
+.page-hakkimizda .split-grid{min-height:470px;height:auto;align-items:stretch}
+.page-hakkimizda .split-copy{display:flex;flex-direction:column;justify-content:center;padding-top:48px;padding-bottom:48px}
+.page-hakkimizda .split-copy p{max-width:620px}
+.page-hakkimizda .split-image img{height:100%;min-height:470px;object-fit:contain;background:#efe9dd}
+.page-hakkimizda .about-story{padding:clamp(45px,6vw,85px) 0}
+.page-hakkimizda .story-image img{height:auto;aspect-ratio:16/10;object-fit:contain;background:#efe9dd}
+.page-hakkimizda .story-copy p{font-size:.91rem;line-height:1.72}
+.page-hizmet-cicekler .detail-gallery{padding-top:clamp(54px,7vw,96px)}
+.page-hizmet-cicekler .detail-gallery .section-heading{margin-bottom:30px}
+.page-kategori .dynamic-product-grid{align-items:stretch}
+.page-kategori .dynamic-product img{aspect-ratio:2/3;object-fit:contain;background:#eee9df}
+@media(max-width:900px){.page-hakkimizda .split-hero,.page-hakkimizda .split-grid{min-height:0}.page-hakkimizda .split-grid{grid-template-columns:1fr}.page-hakkimizda .split-copy{padding:50px max(24px,5vw)}.page-hakkimizda .split-image{border-radius:0}.page-hakkimizda .split-image img{min-height:0;height:auto;max-height:500px;width:100%}}
+@media(max-width:700px){.page-hakkimizda .split-copy .hero-buttons{display:flex;flex-direction:column;align-items:stretch}.page-hakkimizda .split-copy .hero-buttons .btn{width:100%;justify-content:center}.page-hakkimizda .story-image img{aspect-ratio:auto}}
