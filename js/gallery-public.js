@@ -1,4 +1,38 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const organizationCategories=new Set(['nisan','arac-susleme','dogum-gunu','kurumsal','konsept','evlilik-teklifi']);
+  const organizationGrid=document.querySelector('[data-gallery-grid][data-gallery-category]');
+  if(organizationGrid&&organizationCategories.has(organizationGrid.dataset.galleryCategory)){
+    const section=organizationGrid.closest('.detail-gallery');
+    const heading=section?.querySelector('.section-heading');
+    if(section&&heading){
+      const category=organizationGrid.dataset.galleryCategory;
+      const service=document.querySelector('main h1')?.textContent.trim()||category;
+      section.classList.remove('section-pad','detail-gallery');
+      section.classList.add('wedding-gallery');
+      document.body.classList.add('page-service-carousel');
+      heading.classList.remove('section-heading','reveal');
+      heading.classList.add('wedding-gallery-heading','container');
+      const title=document.createElement('div');
+      title.append(...heading.childNodes);
+      heading.append(title);
+      const hint=document.createElement('p');
+      hint.className='wedding-gallery-hint';
+      hint.innerHTML='<span aria-hidden="true">↔</span><span class="hint-desktop">SÜRÜKLEYEREK KEŞFEDİN</span><span class="hint-mobile">KAYDIRARAK KEŞFEDİN</span>';
+      heading.append(hint);
+      const carousel=document.createElement('div');
+      carousel.className='wedding-carousel';
+      carousel.dataset.serviceCarousel='';
+      carousel.dataset.galleryCategory=category;
+      carousel.dataset.serviceName=service.toLocaleLowerCase('tr-TR');
+      carousel.setAttribute('role','region');
+      carousel.setAttribute('aria-roledescription','carousel');
+      carousel.setAttribute('aria-label',`${service} fotoğrafları`);
+      carousel.tabIndex=0;
+      carousel.innerHTML='<div class="wedding-carousel-backdrop" aria-hidden="true"></div><div class="wedding-carousel-viewport"><div class="wedding-carousel-track" data-carousel-track><p class="gallery-empty">Fotoğraflar yükleniyor.</p></div></div><div class="wedding-carousel-controls container"><button type="button" data-carousel-prev aria-label="Önceki fotoğraf">←</button><span class="wedding-carousel-count" aria-live="polite"><strong data-carousel-current>00</strong><span>/</span><span data-carousel-total>00</span></span><button type="button" data-carousel-next aria-label="Sonraki fotoğraf">→</button></div>';
+      section.replaceChildren(heading,carousel);
+      document.querySelector('.lightbox')?.classList.add('wedding-lightbox');
+    }
+  }
   const config=window.MASAL_GALLERY_CONFIG||{};
   if(!/^https:\/\/[^/]+/.test(config.url||'')||!config.publishableKey)return;
   const carousel=document.querySelector('[data-service-carousel][data-gallery-category]');
