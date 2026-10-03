@@ -63,7 +63,7 @@
       const description = document.createElement('label'); description.className = 'photo-caption'; description.textContent = 'Kısa ürün açıklaması';
       const descriptionInput = document.createElement('textarea'); descriptionInput.className = 'item-description';
       descriptionInput.maxLength = 320; descriptionInput.rows = 2;
-      descriptionInput.value = photo.item_description || '';
+      descriptionInput.value = photo.item_description || curated(photo)?.description || '';
       descriptionInput.placeholder = 'Gerçek ürün özelliklerini yazın';
       description.append(descriptionInput);
       const sameDay = document.createElement('label'); sameDay.className = 'photo-caption same-day-toggle';
@@ -111,7 +111,10 @@
       .eq('category', slug).order('sort_order', { ascending: true }).order('created_at', { ascending: true }).order('id', { ascending: true });
     if (error) { list.textContent = ''; fail(error); return; }
     photos = data || []; renderPhotos();
-    const suggestions = photos.filter(photo => curated(photo)?.title && photo.item_title !== curated(photo).title);
+    const suggestions = photos.filter(photo => {
+      const suggestion = curated(photo);
+      return suggestion && (!photo.item_description || !photo.item_title || /^[A-F\d -]{20,}$/i.test(photo.item_title));
+    });
     const duplicates = photos.filter(photo => curated(photo)?.duplicate);
     $('#save-suggested-titles').hidden = category.kind !== 'cicekcilik' || !suggestions.length;
     $('#remove-duplicate-photos').hidden = category.kind !== 'cicekcilik' || !duplicates.length;
@@ -347,21 +350,25 @@
   });
   $('#save-suggested-titles').addEventListener('click', async () => {
     if (busy || !category || !(await saveOrder())) return;
-    const candidates = photos.filter(photo => curated(photo)?.title && photo.item_title !== curated(photo).title);
+    const candidates = photos.filter(photo => {
+      const suggestion = curated(photo);
+      return suggestion && (!photo.item_description || !photo.item_title || /^[A-F\d -]{20,}$/i.test(photo.item_title));
+    });
     if (!candidates.length) return;
     setBusy(true);
     let saved = 0;
     for (const photo of candidates) {
-      const title = curated(photo).title;
+      const title = photo.item_title && !/^[A-F\d -]{20,}$/i.test(photo.item_title) ? photo.item_title : curated(photo).title;
+      const description = photo.item_description || curated(photo).description;
       const { error } = await client.from('gallery_photos').update({
-        item_title: title, item_description: '', alt_text: `${title} — Masal Dekor Darende`
+        item_title: title, item_description: description, alt_text: `${title} — Masal Dekor Darende`
       }).eq('id', photo.id).eq('category', category.slug);
       if (error) { fail(error); break; }
-      photo.item_title = title; photo.item_description = ''; saved++;
+      photo.item_title = title; photo.item_description = description; saved++;
     }
     setBusy(false);
     await loadCategory(category.slug);
-    if (saved) message(`${saved} ürün adı kaydedildi.`);
+    if (saved) message(`${saved} ürünün eksik adı/açıklaması kaydedildi.`);
   });
   $('#remove-duplicate-photos').addEventListener('click', async () => {
     if (busy || !category || !(await saveOrder())) return;

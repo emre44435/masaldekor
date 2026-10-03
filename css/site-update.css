@@ -150,3 +150,35 @@
   object-fit:cover!important;
  }
 }
+
+/* Search-friendly collection heading uses the same visual scale as prior h2. */
+.detail-gallery .section-heading h1{
+ font-family:'Playfair Display',serif;
+ font-size:clamp(2.1rem,4vw,3.5rem);
+ font-weight:500;
+ line-height:1.12;
+ margin:8px 0 14px;
+ color:#203329;
+}
+.detail-gallery .section-heading .flower-collection-intro{
+ max-width:760px;
+ margin:0 auto;
+ color:#526056;
+ font-size:clamp(.9rem,1.3vw,1.05rem);
+ line-height:1.65;
+}
+.catalog-group-heading h1{
+ font-family:'Playfair Display',serif;
+ font-weight:500;
+ font-size:clamp(1.9rem,3.2vw,3rem);
+ line-height:1.12;
+ margin:9px 0;
+}
+.service-seo-copy{padding:clamp(38px,5vw,68px) 0;background:#fbf8f1;border-top:1px solid #e8decf}
+.service-seo-copy .container{max-width:880px}
+.service-seo-copy h2,.local-nearby h2{font:500 clamp(1.7rem,3vw,2.7rem)/1.15 'Playfair Display',serif;color:#203329;margin:0 0 14px}
+.service-seo-copy p,.local-nearby p{font-size:clamp(.93rem,1.3vw,1.05rem);line-height:1.75;color:#46544a;margin:0 0 16px}
+.service-seo-copy .service-related{font-size:.9rem;margin:18px 0 0}
+.service-seo-copy a,.local-nearby a{color:#1d513e;text-decoration:underline;text-underline-offset:3px}
+.local-nearby{background:#fbf8f1}
+.local-nearby .container{max-width:880px}

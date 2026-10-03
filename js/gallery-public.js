@@ -76,9 +76,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       else track.replaceChildren(...slides);
       carousel.dispatchEvent(new Event('gallery:updated'));
     }else if(grid){
-      const cards=rows.map(row=>{
+      const cards=rows.map((row,index)=>{
         if (grid.dataset.galleryKind === 'cicekcilik' && window.MASAL_PRODUCT_CARD) {
-          return window.MASAL_PRODUCT_CARD(row, grid.dataset.categoryLabel || category, source);
+          return window.MASAL_PRODUCT_CARD(row, grid.dataset.categoryLabel || category, source, index);
         }
         const frame=document.createElement('button');frame.type='button';frame.className='gallery-item named-product';
         frame.dataset.src=source(row.image_url);frame.dataset.caption=row.item_title||row.alt_text||`${category} fotoğrafı`;
@@ -90,7 +90,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(row.item_title){const caption=document.createElement('span');const title=document.createElement('strong');title.textContent=row.item_title;caption.append(title);frame.append(caption);}
         return frame;
       });
-      if(!cards.length){const empty=document.createElement('p');empty.className='gallery-empty';empty.textContent='Bu hizmetin fotoğrafları yakında eklenecek.';grid.replaceChildren(empty);}
+      if(!cards.length){
+        if (!grid.querySelector('.flower-product-card')) {
+          const empty=document.createElement('p');empty.className='gallery-empty';empty.textContent='Bu hizmetin fotoğrafları yakında eklenecek.';grid.replaceChildren(empty);
+        }
+      }
       else grid.replaceChildren(...cards);
     }
   }catch(error){

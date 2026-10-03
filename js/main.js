@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const event=String(data.get('event')||'').trim();
       const day=String(data.get('date')||'').trim();
       const chosenDay=day?new Intl.DateTimeFormat('tr-TR',{day:'2-digit',month:'long',year:'numeric'}).format(new Date(`${day}T12:00:00`)):'Görüşerek belirleyelim';
-      const message=`Merhaba, Masal Organizasyon için bir görüşme randevusu talep etmek istiyorum.\n\nAd Soyad: ${name}\nTelefon: ${phone}\nOrganizasyon Türü: ${event}\nTercih Ettiğim Görüşme Günü: ${chosenDay}\n\nUygunluğunuzu paylaşabilir misiniz?`;
+      const message=`Merhaba, Masal Dekor için bir görüşme randevusu talep etmek istiyorum.\n\nAd Soyad: ${name}\nTelefon: ${phone}\nOrganizasyon Türü: ${event}\nTercih Ettiğim Görüşme Günü: ${chosenDay}\n\nUygunluğunuzu paylaşabilir misiniz?`;
       const url='https://wa.me/905304476344?text='+encodeURIComponent(message);
       const opened=window.open(url,'_blank');
       if(opened)opened.opener=null;else window.location.href=url;
