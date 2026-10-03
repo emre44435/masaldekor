@@ -136,3 +136,17 @@
  .catalog-group-heading{margin-bottom:18px}
  .page-hakkimizda .story-values{grid-template-columns:1fr}
 }
+
+/* Fill the category photo stage without side bars or stretching the subject. */
+.catalog-grid[data-category-grid="organizasyon"] .catalog-card.has-photo .catalog-media .catalog-photo{
+ object-fit:cover!important;
+}
+.catalog-card[data-category-card="arac-susleme"] .catalog-media .catalog-photo{
+ object-position:50% 59%!important;
+}
+@media(max-width:700px){
+ .page-index .catalog-grid .catalog-card.has-photo .catalog-media .catalog-photo,
+ .page-hizmetler .catalog-grid .catalog-card.has-photo .catalog-media .catalog-photo{
+  object-fit:cover!important;
+ }
+}
