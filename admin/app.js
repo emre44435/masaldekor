@@ -6,7 +6,7 @@
   const list = $('#photo-list'), status = $('#status');
   const saveButton = $('#save-order');
   const preview = $('#preview');
-  let client, categories = [], category, photos = [], dirty = false, busy = false, statusTimer, categoryOrderDirty = false;
+  let client, categories = [], category, photos = [], dirty = false, busy = false, uploading = false, statusTimer, categoryOrderDirty = false;
 
   function message(text, error = false) {
     status.textContent = text;
@@ -29,6 +29,7 @@
     $('#remove-duplicate-photos').disabled = value;
     $('#save-category-order').disabled = value || !categoryOrderDirty;
     $('#logout').disabled = value;
+    $('#bulk-upload-zone').setAttribute('aria-disabled', String(value || !category));
     document.querySelectorAll('#create-category button, #edit-category button, #edit-category input, #edit-category select, #edit-category textarea, .category-move, .category-drag').forEach(control => control.disabled = value);
   }
   function curated(photo) {
@@ -183,30 +184,40 @@
     return /^[0-9a-f]{8}(?:\s+[0-9a-f]{4}){3}\s+[0-9a-f]{12}$/i.test(title) ? '' : title.slice(0, 120);
   }
   async function addFiles(files) {
-    if (busy || !category || !files.length) return;
-    if (!(await saveOrder())) return;
+    if (busy || uploading || !category || !files.length) return;
+    uploading = true;
+    if (!(await saveOrder())) { uploading = false; return; }
     setBusy(true);
+    const selectedCategory = category;
     let added = 0;
-    for (const file of files) {
-      let uploaded;
-      try {
-        uploaded = await upload(file);
-        const { error } = await client.from('gallery_photos').insert({
-          category: category.slug, image_url: uploaded.url, storage_path: uploaded.path,
-          alt_text: `${category.label} fotoğrafı`, item_title: titleFromFile(file.name), image_width: uploaded.width,
-          image_height: uploaded.height, sort_order: photos.length + 1
-        });
-        if (error) throw error;
-        added++;
-        photos.push({ id: '', sort_order: photos.length + 1 });
-      } catch (error) {
-        if (uploaded) await client.storage.from('gallery-photos').remove([uploaded.path]);
-        fail(error); break;
+    const failures = [];
+    try {
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index];
+        $('#upload-progress').textContent = `${index + 1} / ${files.length} yükleniyor: ${file.name}`;
+        let uploaded;
+        try {
+          uploaded = await upload(file, selectedCategory.slug);
+          const { data, error } = await client.from('gallery_photos').insert({
+            category: selectedCategory.slug, image_url: uploaded.url, storage_path: uploaded.path,
+            alt_text: `${selectedCategory.label} fotoğrafı`, item_title: titleFromFile(file.name), image_width: uploaded.width,
+            image_height: uploaded.height, sort_order: photos.length + added + 1
+          }).select('id').single();
+          if (error) throw error;
+          if (!data?.id) throw new Error('Fotoğraf kaydı doğrulanamadı.');
+          added++;
+        } catch (error) {
+          if (uploaded) await client.storage.from('gallery-photos').remove([uploaded.path]);
+          failures.push(`${file.name}: ${error.message || 'Yüklenemedi'}`);
+        }
       }
+    } finally {
+      setBusy(false);
+      await loadCategory(selectedCategory.slug);
+      uploading = false;
+      $('#upload-progress').textContent = `${added} / ${files.length} görsel eklendi.` + (failures.length ? ` Yüklenemeyenler: ${failures.join(' • ')}` : '');
+      message(failures.length ? `${added} görsel eklendi, ${failures.length} görsel yüklenemedi. Ayrıntılar yükleme alanında.` : `${added} görsel eklendi.`, Boolean(failures.length));
     }
-    setBusy(false);
-    await loadCategory(category.slug);
-    if (added) message(`${added} fotoğraf eklendi.`);
   }
   async function replacePhoto(photo, file) {
     if (!(await saveOrder())) return;
@@ -510,6 +521,19 @@
     if ((dirty || categoryOrderDirty) && !confirm('Kaydedilmemiş sıralamayı iptal edip çıkış yapmak istiyor musunuz?')) return;
     await client.auth.signOut(); adminView.hidden = true; loginView.hidden = false; $('#logout').hidden = true;
   });
+  const bulkZone = $('#bulk-upload-zone');
+  bulkZone.addEventListener('click', () => { if (!busy && category) $('#add-files').click(); });
+  bulkZone.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (!busy && category) $('#add-files').click(); }
+  });
+  for (const name of ['dragenter', 'dragover']) bulkZone.addEventListener(name, event => {
+    event.preventDefault(); if (!busy && category) { event.dataTransfer.dropEffect = 'copy'; bulkZone.classList.add('drag-over'); }
+  });
+  bulkZone.addEventListener('dragleave', () => bulkZone.classList.remove('drag-over'));
+  bulkZone.addEventListener('drop', event => {
+    event.preventDefault(); bulkZone.classList.remove('drag-over');
+    if (!busy && category) addFiles([...event.dataTransfer.files]);
+  });
   $('#add-files').addEventListener('change', event => {
     const files = [...event.target.files]; event.target.value = ''; addFiles(files);
   });
@@ -636,5 +660,6 @@
     checkAdmin();
   }
 })();
+
 
 

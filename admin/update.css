@@ -11,3 +11,6 @@
 .categories-tree{display:grid;gap:18px;margin:25px 0 30px}.admin-category-group{min-width:0;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fffdf8}.admin-category-group h2{font-size:26px;margin:0 0 12px}.admin-category-group .category-tabs{margin:0;gap:8px}.category-select{overflow-wrap:anywhere}@media(max-width:680px){.admin-category-group{padding:14px}.admin-category-group .category-tabs{margin:0;padding:0 0 10px;max-width:100%;overflow-x:auto}}
 
 .category-delete-button{min-height:46px;padding:0 18px;border:1px solid #a46659;border-radius:9px;background:#fffdf8;color:#873c31;font-size:12px;font-weight:700}.category-delete-button:hover{background:#fbeee9}
+
+
+.bulk-upload-zone{display:grid;gap:8px;text-align:center;padding:26px 18px;margin:20px 0;border:2px dashed #b8a37c;border-radius:14px;background:#fffdf8;color:#17362a;cursor:pointer}.bulk-upload-zone span{font-size:13px;line-height:1.5;color:#67716a}.bulk-upload-zone:focus-visible{outline:3px solid #b8a37c;outline-offset:3px}.bulk-upload-zone.drag-over{background:#edf3ee;border-color:#17362a}.bulk-upload-zone[aria-disabled=true]{opacity:.6;cursor:wait}#upload-progress:empty{display:none}

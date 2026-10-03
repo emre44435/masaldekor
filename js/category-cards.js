@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'evlilik-teklifi': 'Evlilik Teklifi', cicekler: 'Çiçekler', buketler: 'Buketler',
     aranjmanlar: 'Aranjmanlar', 'kiz-isteme-cikolata-cicekleri': 'Kız İsteme Çikolata ve Çiçekleri'
   };
+  const existingSummaries = new Map([...document.querySelectorAll('[data-category-card]')].map(card => [card.dataset.categoryCard, card.querySelector('.catalog-description')?.textContent.trim()]));
   const imageUrl = value => /^https:\/\//i.test(value) ? value : new URL(value, document.baseURI).href;
   const safePage = row => /^hizmet-[a-z0-9-]+\.html$/.test(row.public_page || '') ||
     /^kategori\.html\?slug=[a-z0-9-]+$/.test(row.public_page || '')
@@ -55,7 +56,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       img.height = row.cover_height || 900;
       img.loading = 'lazy';
       img.decoding = 'async';
-      a.append(img);
+      const media = document.createElement('span'); media.className = 'catalog-media';
+      media.append(img); a.append(media);
     } else {
       const art = document.createElement('span');
       art.className = 'catalog-art'; art.setAttribute('aria-hidden', 'true');
@@ -68,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const title = document.createElement('strong'); title.textContent = label;
     const description = document.createElement('span');
     description.className = 'catalog-description';
-    description.textContent = row.summary || fallbackSummary[row.slug] || 'Masal Dekor ile size özel tasarım.';
+    description.textContent = row.summary || existingSummaries.get(row.slug) || fallbackSummary[row.slug] || 'Masal Dekor ile size özel tasarım.';
     const link = document.createElement('span'); link.className = 'catalog-link';
     link.textContent = 'Kategoriyi İncele';
     content.append(group, title, description, link); a.append(content);
@@ -93,4 +95,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.documentElement.dataset.catalogFallback = 'true';
   }
 });
+
 

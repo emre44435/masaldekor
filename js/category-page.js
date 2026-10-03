@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const categoryUrl = new URL(endpoint + 'gallery_categories');
     categoryUrl.searchParams.set('select', 'slug,label,kind,summary,is_visible');
     categoryUrl.searchParams.set('slug', `eq.${slug}`);
-    const categoryResponse = await fetch(categoryUrl, {headers});
+    const categoryResponse = await fetch(categoryUrl, {cache: 'no-store', headers});
     if (!categoryResponse.ok) throw new Error(`Category ${categoryResponse.status}`);
     const category = (await categoryResponse.json())[0];
     if (!category?.is_visible) { showError('Bu kategori artık yayında değil.'); return; }
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     photoUrl.searchParams.set('select', 'id,image_url,alt_text,item_title,item_description,same_day_available,image_width,image_height');
     photoUrl.searchParams.set('category', `eq.${slug}`);
     photoUrl.searchParams.set('order', 'sort_order.asc,created_at.asc,id.asc');
-    const photoResponse = await fetch(photoUrl, {headers});
+    const photoResponse = await fetch(photoUrl, {cache: 'no-store', headers});
     if (!photoResponse.ok) throw new Error(`Gallery ${photoResponse.status}`);
     const rows = await photoResponse.json();
     if (!Array.isArray(rows)) throw new Error('Gallery response');
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return !(curated?.duplicate && curated.source === row.image_url);
     }).map((row, index) => {
       if (category.kind === 'cicekcilik' && window.MASAL_PRODUCT_CARD) {
-        return window.MASAL_PRODUCT_CARD(row, category.label, assetUrl);
+        return window.MASAL_PRODUCT_CARD(row, category.label, assetUrl, index);
       }
       const title = row.item_title || row.alt_text || `${category.label} fotoğrafı`;
       const button = document.createElement('button');
