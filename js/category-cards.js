@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     /^kategori\.html\?slug=[a-z0-9-]+$/.test(row.public_page || '')
     ? row.public_page : `kategori.html?slug=${encodeURIComponent(row.slug)}`;
   const createCard = row => {
-    const label = fixedLabels[row.slug] || row.label;
+    const label = row.label?.trim() || fixedLabels[row.slug] || row.slug;
     const a = document.createElement('a');
     a.className = 'catalog-card';
     a.dataset.categoryCard = row.slug;
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     url.searchParams.set('select', 'slug,label,public_page,display_order,kind,summary,cover_url,cover_width,cover_height,is_visible');
     url.searchParams.set('is_visible', 'eq.true');
     url.searchParams.set('order', 'display_order.asc,slug.asc');
-    const response = await fetch(url, {headers: {apikey: config.publishableKey, Accept: 'application/json'}});
+    const response = await fetch(url, {cache: 'no-store', headers: {apikey: config.publishableKey, Accept: 'application/json'}});
     if (!response.ok) throw new Error(`Categories ${response.status}`);
     const rows = await response.json();
     if (!Array.isArray(rows)) throw new Error('Categories response');
@@ -93,3 +93,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.documentElement.dataset.catalogFallback = 'true';
   }
 });
+

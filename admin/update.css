@@ -3,3 +3,6 @@
 .curated-action:hover{background:#edf3ee}
 .curated-action[hidden]{display:none}
 @media(max-width:680px){.section-actions{display:grid;width:100%}.curated-action{width:100%}}
+
+
+.category-order-tools{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:24px}.category-order-tools .help{margin:0}.category-tab{display:flex;align-items:center;flex:none;border:1px solid #dbcbae;border-radius:16px;background:#fffdf8;overflow:hidden}.category-tabs .category-tab button{border:0;border-radius:0;background:transparent;padding:10px 9px;white-space:nowrap}.category-tabs .category-select[aria-current=true]{background:var(--green);color:white}.category-drag{touch-action:none;user-select:none;cursor:grab}.category-tab.dragging{opacity:.4}.category-move{min-width:30px}.category-order-tools button{flex-shrink:0}@media(max-width:680px){.category-order-tools{align-items:stretch;flex-direction:column}.category-order-tools button{width:100%}}
