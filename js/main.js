@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   form?.addEventListener('submit',e=>{
     e.preventDefault();if(!form.reportValidity())return;
     const data=new FormData(form);
-    const message=`Merhaba, Darende Organizasyon web sitesi üzerinden iletişime geçiyorum.\n\nAd Soyad: ${String(data.get('name')).trim()}\nTelefon: ${String(data.get('phone')).trim()}\nOrganizasyon: ${String(data.get('event')).trim()}\nMesaj: ${String(data.get('message')).trim()}`;
+    const message=`Merhaba, Masal Dekor web sitesi üzerinden iletişime geçiyorum.\n\nAd Soyad: ${String(data.get('name')).trim()}\nTelefon: ${String(data.get('phone')).trim()}\nOrganizasyon: ${String(data.get('event')).trim()}\nMesaj: ${String(data.get('message')).trim()}`;
     const url='https://wa.me/905304476344?text='+encodeURIComponent(message);
     const opened=window.open(url,'_blank');if(opened)opened.opener=null;else window.location.href=url;
   });

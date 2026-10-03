@@ -1,0 +1,27 @@
+.legal-page{background:#fbf8f1;color:#24352b}
+.legal-hero{padding:clamp(48px,7vw,94px) 0 34px;background:linear-gradient(150deg,#fffdf8,#f6efe2);border-bottom:1px solid #e5d9c5}
+.legal-hero .container,.legal-layout{max-width:1080px}
+.legal-hero .eyebrow{display:block;margin-bottom:13px;color:#916d37;letter-spacing:.17em;font-size:12px;font-weight:700}
+.legal-hero h1{max-width:800px;margin:0;color:#183a2b;font:500 clamp(36px,5vw,64px)/1.12 'Playfair Display',serif}
+.legal-hero p{max-width:720px;margin:17px 0 0;color:#53645b;font:400 clamp(15px,1.6vw,18px)/1.65 'DM Sans',sans-serif}
+.legal-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;padding-top:38px;padding-bottom:76px}
+.legal-card{min-width:0;padding:clamp(22px,4vw,45px);background:#fffdf9;border:1px solid #e7ddce;border-radius:17px;box-shadow:0 12px 35px #1d352910}
+.legal-card h2{margin:33px 0 12px;color:#1d4937;font:500 clamp(23px,3vw,30px)/1.25 'Playfair Display',serif}
+.legal-card h2:first-child{margin-top:0}
+.legal-card p,.legal-card li{color:#384b40;font:400 15px/1.75 'DM Sans',sans-serif;overflow-wrap:anywhere}
+.legal-card p{margin:0 0 15px}
+.legal-card ul{margin:0 0 20px;padding-left:22px}
+.legal-card li+li{margin-top:7px}
+.legal-card a{color:#175741;text-decoration:underline;text-underline-offset:3px}
+.legal-card a:hover{color:#98723d}
+.legal-card .legal-note{padding:17px 19px;border-left:3px solid #b7955b;border-radius:0 10px 10px 0;background:#f5efe5}
+.legal-card .legal-pending{display:inline-block;padding:1px 6px;border-radius:4px;background:#fff1cc;color:#5d4217;font-weight:700}
+.legal-card table{width:100%;border-collapse:collapse;margin:14px 0 22px}
+.legal-card th,.legal-card td{padding:12px;border-bottom:1px solid #e8decf;text-align:left;vertical-align:top;color:#384b40;font:400 14px/1.55 'DM Sans',sans-serif}
+.legal-card th{color:#214c3b;font-weight:700}
+.footer-legal{display:flex;flex-wrap:wrap;gap:8px 20px;padding:13px 0 21px;border-top:1px solid #ffffff25}
+.footer-legal a{color:#e7dbbd;text-decoration:none;font:500 12px/1.45 'DM Sans',sans-serif}
+.footer-legal a:hover{text-decoration:underline}
+.form-privacy-note{font:400 12px/1.55 'DM Sans',sans-serif;color:#d7e4d9}
+.form-privacy-note a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+@media(max-width:620px){.legal-hero{padding:40px 0 25px}.legal-layout{padding-top:20px;padding-bottom:48px}.legal-card{padding:21px}.legal-card h2{margin-top:26px}.legal-card th,.legal-card td{padding:9px 7px;font-size:12px}.footer-legal{gap:10px 14px}.legal-page .floating-social,.page-iletisim .floating-social,.page-hizmetler .floating-social{display:none}}
