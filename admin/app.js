@@ -279,20 +279,30 @@
     setCategoryOrderDirty(true);
   }
   function renderCategories() {
-    const nav = $('#categories'); nav.replaceChildren();
-    categories.forEach((item, index) => {
+    const root = $('#categories'); root.replaceChildren();
+    for (const [kind, title] of [['organizasyon', 'Organizasyon'], ['cicekcilik', 'Çiçek']]) {
+      const section = document.createElement('section'); section.className = 'admin-category-group';
+      const heading = document.createElement('h2'); heading.textContent = title;
+      const nav = document.createElement('div'); nav.className = 'category-tabs'; nav.dataset.categoryKind = kind;
+      nav.setAttribute('role', 'group'); nav.setAttribute('aria-label', `${title} kategorileri`);
+      section.append(heading, nav); root.append(section);
+      const items = categories.filter(item => (item.kind || 'organizasyon') === kind);
+      if (!items.length) {
+        const empty = document.createElement('p'); empty.className = 'help'; empty.textContent = 'Henüz kategori yok. Yeni kategori oluştururken bu bölümü seçebilirsiniz.'; nav.append(empty);
+      }
+      items.forEach((item, index) => {
       const wrapper = document.createElement('div'); wrapper.className = 'category-tab'; wrapper.dataset.slug = item.slug;
       const handle = document.createElement('button'); handle.type = 'button'; handle.className = 'category-drag'; handle.textContent = '☷';
       handle.setAttribute('aria-label', `${item.label} kategorisini sürükleyerek sırala`);
       const button = document.createElement('button'); button.type = 'button'; button.className = 'category-select';
-      button.textContent = item.label; button.dataset.slug = item.slug;
+      button.textContent = item.label + (item.is_visible === false ? ' (Gizli)' : ''); button.dataset.slug = item.slug;
       button.setAttribute('aria-current', String(category?.slug === item.slug));
       button.addEventListener('click', () => loadCategory(item.slug));
       wrapper.append(handle, button);
       for (const [direction, symbol, title] of [[-1, '←', 'Öne taşı'], [1, '→', 'Arkaya taşı']]) {
         const move = document.createElement('button'); move.type = 'button'; move.className = 'category-move'; move.textContent = symbol;
         move.setAttribute('aria-label', `${item.label}: ${title}`);
-        move.disabled = direction < 0 ? index === 0 : index === categories.length - 1;
+        move.disabled = direction < 0 ? index === 0 : index === items.length - 1;
         move.addEventListener('click', () => {
           if (busy) return;
           const target = direction < 0 ? wrapper.previousElementSibling : wrapper.nextElementSibling;
@@ -303,7 +313,8 @@
         wrapper.append(move);
       }
       nav.append(wrapper);
-    });
+      });
+    }
   }
   async function saveCategoryOrder() {
     if (!categoryOrderDirty) return true;
@@ -334,15 +345,16 @@
     if (!categoryDrag.moved && Math.hypot(event.clientX - categoryDrag.x, event.clientY - categoryDrag.y) < 8) return;
     categoryDrag.moved = true;
     const item = categoryDrag.item; item.classList.add('dragging'); item.style.pointerEvents = 'none';
+    const nav = item.parentElement;
     const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.category-tab');
-    if (target && target !== item && target.parentElement === categoryNav) {
+    if (target && target !== item && target.parentElement === nav) {
       const rect = target.getBoundingClientRect();
       const before = event.clientX < rect.left + rect.width / 2;
-      categoryNav.insertBefore(item, before ? target : target.nextSibling);
+      nav.insertBefore(item, before ? target : target.nextSibling);
     }
-    const rect = categoryNav.getBoundingClientRect();
-    if (event.clientX < rect.left + 35) categoryNav.scrollLeft -= 15;
-    if (event.clientX > rect.right - 35) categoryNav.scrollLeft += 15;
+    const rect = nav.getBoundingClientRect();
+    if (event.clientX < rect.left + 35) nav.scrollLeft -= 15;
+    if (event.clientX > rect.right - 35) nav.scrollLeft += 15;
   });
   function finishCategoryDrag(event) {
     if (!categoryDrag || categoryDrag.id !== event.pointerId) return;
@@ -377,14 +389,34 @@
     const form = event.currentTarget;
     if (!(await saveOrder())) return;
     const label = form.elements.label.value.trim();
-    const slug = slugify(label);
-    if (['kurumsal', 'konsept'].includes(slug)) { message('Bu ad kullanılamıyor. Farklı bir kategori adı seçin.', true); return; }
-    if (slug.length < 2) { message('Daha uzun bir kategori adı yazın.', true); return; }
-    if (categories.some(item => item.slug === slug)) { message('Bu kategori adı zaten kullanılıyor.', true); return; }
+    const baseSlug = slugify(label);
+    const kind = form.elements.kind.value;
+    if (baseSlug.length < 2) { message('Daha uzun bir kategori adı yazın.', true); return; }
+    const existing = categories.find(item => slugify(item.label) === baseSlug && item.kind === kind && !['kurumsal', 'konsept'].includes(item.slug));
+    if (existing) {
+      if (existing.is_visible !== false) {
+        await loadCategory(existing.slug);
+        message('Bu adla yayında bir kategori var. Düzenlemek için kategori seçildi.', true); return;
+      }
+      setBusy(true);
+      try {
+        await updateCategory(existing.slug, {label, kind, summary: form.elements.summary.value.trim() || existing.summary || '', is_visible: true});
+        category = {slug: existing.slug};
+        form.reset(); form.closest('details').open = false;
+        setBusy(false); await showAdmin();
+        message('Gizli kategori tekrar yayına açıldı. Eski kapak ve fotoğrafları korundu.');
+      } catch (error) { fail(error); } finally { setBusy(false); }
+      return;
+    }
+    // URLs are permanent identifiers: a renamed category must not reserve its old display name.
+    let slug = baseSlug, suffix = 2;
+    while (categories.some(item => item.slug === slug) || ['kurumsal', 'konsept'].includes(slug)) {
+      slug = `${baseSlug.slice(0, 60)}-${suffix++}`;
+    }
     setBusy(true);
     try {
     const { data: created, error } = await client.from('gallery_categories').insert({
-      slug, label, kind: form.elements.kind.value, summary: form.elements.summary.value.trim(),
+      slug, label, kind, summary: form.elements.summary.value.trim(),
       public_page: `kategori.html?slug=${slug}`, display_order: Math.max(0,...categories.map(item => item.display_order || 0)) + 1,
       is_visible: false, is_custom: true
     }).select(categoryFields).single();
@@ -409,6 +441,32 @@
     });
     setBusy(false);
     await showAdmin(); message('Kategori bilgileri kaydedildi. Ana sayfayı yenileyerek görebilirsiniz.');
+    } catch (error) { fail(error); } finally { setBusy(false); }
+  });
+  $('#remove-category-cover').addEventListener('click', async () => {
+    if (!category || busy) return;
+    if (!category.cover_url) { message('Bu kategoride yüklenmiş kapak yok.'); return; }
+    if (!confirm('Yüklediğiniz kategori kapağı kaldırılsın mı? Kategorinin fotoğrafları korunacak.')) return;
+    if (!(await saveOrder())) return;
+    const oldPath = category.cover_storage_path;
+    setBusy(true);
+    try {
+      await updateCategory(category.slug, {cover_url: null, cover_storage_path: null, cover_width: null, cover_height: null});
+      let storageError;
+      if (oldPath) storageError = (await client.storage.from('gallery-photos').remove([oldPath])).error;
+      setBusy(false); await showAdmin();
+      message(storageError ? 'Kapak siteden kaldırıldı; depolama dosyası temizlenemedi.' : 'Yüklenen kategori kapağı kaldırıldı.', Boolean(storageError));
+    } catch (error) { fail(error); } finally { setBusy(false); }
+  });
+  $('#delete-category').addEventListener('click', async () => {
+    if (!category || busy) return;
+    if (!confirm(`“${category.label}” kategorisi siteden kaldırılsın mı? Tekrar açabilmeniz için kapak ve fotoğrafları korunacak.`)) return;
+    if (!(await saveOrder())) return;
+    setBusy(true);
+    try {
+      await updateCategory(category.slug, {is_visible: false});
+      setBusy(false); await showAdmin();
+      message('Kategori siteden kaldırıldı. Aynı ad ve bölümle yeniden oluşturabilir veya Sitede göster seçeneğiyle geri açabilirsiniz.');
     } catch (error) { fail(error); } finally { setBusy(false); }
   });
   $('#cover-file').addEventListener('change', async event => {
@@ -578,4 +636,5 @@
     checkAdmin();
   }
 })();
+
 
