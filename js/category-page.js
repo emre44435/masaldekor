@@ -46,6 +46,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!photoResponse.ok) throw new Error(`Gallery ${photoResponse.status}`);
     const rows = await photoResponse.json();
     if (!Array.isArray(rows)) throw new Error('Gallery response');
+    if (category.kind === 'organizasyon') {
+      const section=gallery.closest('section');
+      const heading=section.querySelector('.catalog-group-heading');
+      section.className='wedding-gallery';
+      heading.className='wedding-gallery-heading container';
+      heading.querySelector('h2').textContent='Fotoğraflardan ilham alın';
+      heading.querySelector('p')?.remove();
+      const title=document.createElement('div');title.append(...heading.childNodes);heading.append(title);
+      const hint=document.createElement('p');hint.className='wedding-gallery-hint';
+      hint.innerHTML='<span aria-hidden="true">↔</span><span class="hint-desktop">SÜRÜKLEYEREK KEŞFEDİN</span><span class="hint-mobile">KAYDIRARAK KEŞFEDİN</span>';heading.append(hint);
+      const carousel=document.createElement('div');carousel.className='wedding-carousel';
+      carousel.dataset.serviceCarousel='';carousel.dataset.serviceName=category.label.toLocaleLowerCase('tr-TR');
+      carousel.setAttribute('role','region');carousel.setAttribute('aria-roledescription','carousel');
+      carousel.setAttribute('aria-label',category.label+' fotoğrafları');carousel.tabIndex=0;
+      carousel.innerHTML='<div class="wedding-carousel-backdrop" aria-hidden="true"></div><div class="wedding-carousel-viewport"><div class="wedding-carousel-track" data-carousel-track></div></div><div class="wedding-carousel-controls container"><button type="button" data-carousel-prev aria-label="Önceki fotoğraf"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#arrow"></use></svg></button><span class="wedding-carousel-count" aria-live="polite"><strong data-carousel-current>00</strong><span>/</span><span data-carousel-total>00</span></span><button type="button" data-carousel-next aria-label="Sonraki fotoğraf"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#arrow"></use></svg></button></div>';
+      const slides=rows.map((row,index)=>{
+        const button=document.createElement('button');button.className='wedding-slide';button.type='button';
+        button.dataset.serviceSlide='';button.dataset.src=assetUrl(row.image_url);button.dataset.caption=row.alt_text||`${category.label} fotoğrafı`;
+        const img=document.createElement('img');img.src=button.dataset.src;img.alt=button.dataset.caption;
+        img.width=row.image_width||1200;img.height=row.image_height||1800;img.loading=index?'lazy':'eager';img.decoding='async';img.draggable=false;
+        const zoom=document.createElement('span');zoom.className='wedding-slide-zoom';zoom.setAttribute('aria-hidden','true');
+        zoom.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.7" cy="10.7" r="6.7"/><path d="m16 16 5 5M10.7 8v5.4M8 10.7h5.4"/></svg><span>FOTOĞRAFI BÜYÜT</span>';
+        button.append(img,zoom);return button;
+      });
+      const track=carousel.querySelector('[data-carousel-track]');track.append(...slides);
+      if(!slides.length){const empty=document.createElement('p');empty.className='gallery-empty';empty.textContent='Bu kategoriye ait fotoğraflar yakında eklenecek.';track.append(empty);}
+      section.replaceChildren(heading,carousel);document.body.classList.add('page-service-carousel');
+      document.querySelector('.lightbox')?.classList.add('wedding-lightbox');
+      window.MASAL_INIT_SERVICE_CAROUSELS?.();return;
+    }
     if (!rows.length) {
       const empty = document.createElement('p'); empty.className = 'gallery-empty';
       empty.textContent = 'Bu kategoriye ait fotoğraflar yakında eklenecek.';
