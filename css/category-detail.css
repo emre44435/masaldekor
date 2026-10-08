@@ -1,0 +1,36 @@
+/* Detail-page alignment only; gallery dimensions and controls stay in their existing styles. */
+.detail-breadcrumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 0;font:600 .7rem/1.5 'DM Sans',sans-serif;letter-spacing:.06em;color:inherit;opacity:.82}
+.detail-breadcrumb a{text-decoration:underline;text-underline-offset:3px}
+main[data-category-kind="cicekcilik"] .detail-breadcrumb{justify-content:center;color:#716449}
+main[data-category-kind="organizasyon"] .detail-hero{min-height:560px;height:auto}
+main[data-category-kind="organizasyon"] .detail-hero-overlay{min-height:560px}
+main[data-category-kind="organizasyon"] .detail-hero-overlay .container{padding-block:70px}
+main[data-category-kind="organizasyon"] .detail-hero h1{max-width:760px;line-height:1.06}
+main[data-category-kind="organizasyon"] .detail-hero p{max-width:630px;line-height:1.7}
+main[data-category-kind="organizasyon"] .detail-content .container,
+main[data-category-kind="organizasyon"] .related-services .container{width:min(1200px,calc(100% - 64px))}
+main[data-category-kind="organizasyon"] .detail-content{padding-block:clamp(52px,6vw,88px)}
+main[data-category-kind="organizasyon"] .related-services{padding-block:clamp(52px,6vw,88px)}
+main[data-category-kind="cicekcilik"] .detail-gallery>.container{width:min(1200px,calc(100% - 64px))}
+main[data-category-kind="cicekcilik"] .detail-gallery .section-heading{max-width:760px;text-align:center;margin-inline:auto}
+main[data-category-kind="cicekcilik"] .detail-gallery h1{line-height:1.1;text-wrap:balance}
+main[data-category-slug="buketler"] [data-static-product]{display:none}
+.page-kategori.dynamic-flower .dynamic-category-hero{padding:clamp(55px,7vw,95px) 0 26px;background:#fbf9f2;border-bottom:0;text-align:center}
+.page-kategori.dynamic-flower .dynamic-category-hero .container{max-width:800px}
+.page-kategori.dynamic-flower .dynamic-category-hero p{margin-inline:auto}
+.page-kategori.dynamic-flower .dynamic-category-gallery{padding-top:25px}
+.page-kategori.dynamic-flower .dynamic-category-gallery .catalog-group-heading{display:none}
+.page-kategori.dynamic-organization .dynamic-category-hero{min-height:560px;display:flex;align-items:center;background-color:#12241d;background-position:center;background-size:cover;color:#fff;padding:75px 0}
+.page-kategori.dynamic-organization .dynamic-category-hero p{color:#eee9df}
+.page-kategori.dynamic-organization .dynamic-category-hero .eyebrow,.page-kategori.dynamic-organization .category-back{color:#d6b676}
+.page-kategori.dynamic-organization .dynamic-category-hero h1{max-width:760px}
+.page-kategori.dynamic-organization .dynamic-category-gallery{padding-block:clamp(45px,6vw,75px)}
+.page-kategori.dynamic-organization .dynamic-category-gallery .catalog-group-heading{max-width:1200px;margin-inline:auto}
+.page-kategori.dynamic-organization .dynamic-category-gallery .catalog-group-heading h2{font-size:clamp(1.9rem,3vw,2.8rem)}
+@media(max-width:700px){
+ main[data-category-kind="organizasyon"] .detail-hero,main[data-category-kind="organizasyon"] .detail-hero-overlay{min-height:540px}
+ main[data-category-kind="organizasyon"] .detail-hero-overlay .container{width:min(100% - 34px,520px);padding-block:35px;margin-bottom:0}
+ main[data-category-kind="organizasyon"] .detail-content .container,main[data-category-kind="organizasyon"] .related-services .container,main[data-category-kind="cicekcilik"] .detail-gallery>.container{width:min(100% - 34px,520px)}
+ .page-kategori.dynamic-organization .dynamic-category-hero{min-height:540px;align-items:end}
+ .page-kategori.dynamic-organization .dynamic-category-hero .container{width:min(100% - 34px,520px)}
+}

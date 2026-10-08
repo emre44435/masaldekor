@@ -15,30 +15,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     aranjmanlar: 'assets/images/flowers/aycicegi-aranjmani-03.webp',
     'kiz-isteme-cikolata-cicekleri': 'assets/images/flowers/kirmizi-buket-ve-cikolata-01.webp'
   };
-  const fallbackSummary = {
-    dugun: 'Size özel düğün dekoru ve davet tasarımı.',
-    nisan: 'Nişan töreniniz için zarif bir atmosfer.',
-    kina: 'Kına gecenize özel sahne ve dekor.',
-    'dogum-gunu': 'Kutlamanıza uygun konsept tasarımı.',
-    'arac-susleme': 'Özel gününüz için zarif ve özenli araç süslemeleri.',
-    'evlilik-teklifi': 'Teklif anınıza özel dekor ve çiçek dokunuşları.',
-    cicekler: 'Özel anlara eşlik eden taze çiçek tasarımları.',
-    buketler: 'Sevdiklerinize özel hazırlanan buketler.',
-    aranjmanlar: 'Mekâna ve kutlamaya özel çiçek aranjmanları.',
-    'kiz-isteme-cikolata-cicekleri': 'Kız isteme törenine özel çikolata ve çiçek sunumları.'
+  const summaryFor = row => {
+    const summary = (row.summary || '').trim();
+    const staleOrganizationCopy = row.kind === 'cicekcilik' && /\b(nişan|düğün|kına)\b/i.test(summary) && !/\b(nişan|düğün|kına)\b/i.test(row.label || '');
+    return summary && !staleOrganizationCopy ? summary : `${row.label} için Masal Dekor çalışmalarını inceleyin.`;
   };
-  const fixedLabels = {
-    dugun: 'Düğün Organizasyonu', kina: 'Kına Gecesi', nisan: 'Nişan Organizasyonu',
-    'arac-susleme': 'Araç Süsleme', 'dogum-gunu': 'Doğum Günü Organizasyonu',
-    'evlilik-teklifi': 'Evlilik Teklifi', cicekler: 'Çiçekler', buketler: 'Buketler',
-    aranjmanlar: 'Aranjmanlar', 'kiz-isteme-cikolata-cicekleri': 'Kız İsteme Çikolata ve Çiçekleri'
+  // A stored public_page is only safe when it belongs to this category.
+  // Admins may rename or repurpose a category without changing its old URL.
+  const staticPages = {
+    'hizmet-dugun.html': ['dugun', 'organizasyon'],
+    'hizmet-kina.html': ['kina', 'organizasyon'],
+    'hizmet-nisan.html': ['nisan-2', 'organizasyon'],
+    'hizmet-dogum-gunu.html': ['dogum-gunu', 'organizasyon'],
+    'hizmet-arac-susleme.html': ['arac-susleme', 'organizasyon'],
+    'hizmet-evlilik-teklifi.html': ['evlilik-teklifi', 'organizasyon'],
+    'hizmet-cicekler.html': ['cicekler', 'cicekcilik'],
+    'hizmet-buketler.html': ['buketler', 'cicekcilik'],
+    'hizmet-aranjmanlar.html': ['aranjmanlar', 'cicekcilik'],
+    'hizmet-kiz-isteme-cikolata-cicekleri.html': ['kiz-isteme-cikolata-cicekleri', 'cicekcilik']
   };
   const imageUrl = value => /^https:\/\//i.test(value) ? value : new URL(value, document.baseURI).href;
-  const safePage = row => /^hizmet-[a-z0-9-]+\.html$/.test(row.public_page || '') ||
-    /^kategori\.html\?slug=[a-z0-9-]+$/.test(row.public_page || '')
-    ? row.public_page : `kategori.html?slug=${encodeURIComponent(row.slug)}`;
+  const safePage = row => {
+    const page = row.public_page || '';
+    if (row.slug === 'nisan-2' && row.kind === 'organizasyon') return 'hizmet-nisan.html';
+    const staticCategory = staticPages[page];
+    if (staticCategory && staticCategory[0] === row.slug && staticCategory[1] === row.kind) return page;
+    const dynamic = /^kategori\.html\?slug=([a-z0-9-]+)$/.exec(page);
+    if (dynamic && dynamic[1] === row.slug) return page;
+    return `kategori.html?slug=${encodeURIComponent(row.slug)}`;
+  };
   const createCard = row => {
-    const label = fixedLabels[row.slug] || row.label;
+    const label = row.label || row.slug;
     const a = document.createElement('a');
     a.className = 'catalog-card';
     a.dataset.categoryCard = row.slug;
@@ -68,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const title = document.createElement('strong'); title.textContent = label;
     const description = document.createElement('span');
     description.className = 'catalog-description';
-    description.textContent = row.summary || fallbackSummary[row.slug] || 'Masal Dekor ile size özel tasarım.';
+    description.textContent = summaryFor(row);
     const link = document.createElement('span'); link.className = 'catalog-link';
     link.textContent = 'Kategoriyi İncele';
     content.append(group, title, description, link); a.append(content);

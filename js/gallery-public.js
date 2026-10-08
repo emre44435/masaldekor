@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  const organizationCategories=new Set(['nisan','arac-susleme','dogum-gunu','kurumsal','konsept','evlilik-teklifi']);
+  const organizationCategories=new Set(['nisan-2','arac-susleme','dogum-gunu','kurumsal','konsept','evlilik-teklifi']);
   const organizationGrid=document.querySelector('[data-gallery-grid][data-gallery-category]');
   if(organizationGrid&&organizationCategories.has(organizationGrid.dataset.galleryCategory)){
     const section=organizationGrid.closest('.detail-gallery');
@@ -91,9 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return frame;
       });
       if(!cards.length){
-        if (!grid.querySelector('.flower-product-card')) {
-          const empty=document.createElement('p');empty.className='gallery-empty';empty.textContent='Bu hizmetin fotoğrafları yakında eklenecek.';grid.replaceChildren(empty);
-        }
+        const empty=document.createElement('p');empty.className='gallery-empty';empty.textContent='Bu kategoriye ait fotoğraflar yakında eklenecek.';grid.replaceChildren(empty);
       }
       else grid.replaceChildren(...cards);
     }

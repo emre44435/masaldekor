@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const gallery = document.querySelector('#dynamic-gallery');
   if (!gallery) return;
   const slug = new URLSearchParams(location.search).get('slug') || '';
+  if (slug === 'nisan-2') { location.replace('hizmet-nisan.html'); return; }
   if (['kurumsal', 'konsept'].includes(slug)) { location.replace('hizmetler.html'); return; }
   const showError = text => {
     document.querySelector('#dynamic-title').textContent = 'Kategori bulunamadı';
@@ -19,24 +20,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   const assetUrl = value => /^https:\/\//i.test(value) ? value : new URL(value, document.baseURI).href;
   try {
     const categoryUrl = new URL(endpoint + 'gallery_categories');
-    categoryUrl.searchParams.set('select', 'slug,label,kind,summary,is_visible');
+    categoryUrl.searchParams.set('select', 'slug,label,kind,summary,cover_url,is_visible');
     categoryUrl.searchParams.set('slug', `eq.${slug}`);
     const categoryResponse = await fetch(categoryUrl, {headers});
     if (!categoryResponse.ok) throw new Error(`Category ${categoryResponse.status}`);
     const category = (await categoryResponse.json())[0];
     if (!category?.is_visible) { showError('Bu kategori artık yayında değil.'); return; }
+    document.querySelector('meta[name="robots"]')?.setAttribute('content', 'index,follow');
+    const staleOrganizationCopy = category.kind === 'cicekcilik' && /\b(nişan|düğün|kına)\b/i.test(category.summary || '') && !/\b(nişan|düğün|kına)\b/i.test(category.label || '');
+    const summary = !staleOrganizationCopy && category.summary?.trim() || `${category.label} için Masal Dekor çalışmalarını inceleyin.`;
+    document.body.classList.add(category.kind === 'cicekcilik' ? 'dynamic-flower' : 'dynamic-organization');
+    if (category.kind !== 'cicekcilik' && category.cover_url) {
+      document.querySelector('.dynamic-category-hero').style.backgroundImage = `linear-gradient(90deg,rgba(8,20,15,.86),rgba(8,20,15,.38) 62%,rgba(8,20,15,.1)),url("${assetUrl(category.cover_url)}")`;
+    }
     document.querySelector('#dynamic-title').textContent = category.label;
-    document.querySelector('#dynamic-kind').textContent = category.kind === 'cicekcilik' ? 'MASAL DEKOR / ÇİÇEKÇİLİK' : 'MASAL DEKOR / ORGANİZASYON';
-    document.querySelector('#dynamic-summary').textContent = category.summary || `${category.label} için Masal Dekor çalışmalarını inceleyin.`;
+    document.querySelector('#dynamic-breadcrumb').textContent = category.label;
+    document.querySelector('#dynamic-kind').textContent = category.kind === 'cicekcilik' ? 'MASAL DEKOR / ÇİÇEKÇİLİK / ' + category.label : 'MASAL DEKOR / ORGANİZASYON / ' + category.label;
+    document.querySelector('#dynamic-summary').textContent = summary;
     document.querySelector('#dynamic-offer').href = 'https://wa.me/905304476344?text=' + encodeURIComponent(`Merhaba Masal Dekor, ${category.label} kategorisi hakkında bilgi almak istiyorum. Sayfa: ${location.href}`);
     document.title = `${category.label} | Masal Dekor Darende`;
-    const description = `${category.label}: ${category.summary || 'Masal Dekor Darende organizasyon ve çiçekçilik çalışmaları.'}`.slice(0, 160);
+    const description = `${category.label}: ${summary}`.slice(0, 160);
     document.querySelector('meta[name="description"]').content = description;
     const canonical = `https://masaldekordarende.com/kategori.html?slug=${slug}`;
     document.querySelector('link[rel="canonical"]').href = canonical;
     document.querySelector('meta[property="og:title"]').content = document.title;
     document.querySelector('meta[property="og:description"]').content = description;
     document.querySelector('meta[property="og:url"]').content = canonical;
+    document.querySelector('.dynamic-category-gallery .catalog-group-heading h2').textContent = category.kind === 'cicekcilik' ? 'Çiçek koleksiyonu' : `${category.label} fotoğrafları`;
 
     const photoUrl = new URL(endpoint + 'gallery_photos');
     photoUrl.searchParams.set('select', 'id,image_url,alt_text,item_title,item_description,same_day_available,image_width,image_height');
