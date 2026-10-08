@@ -76,9 +76,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   const box=document.querySelector('.lightbox');
   const boxImg=box?.querySelector('img');const caption=box?.querySelector('figcaption');
   const previousImage=box?.querySelector('.lightbox-previous-image');
-  const weddingLightbox=box?.classList.contains('wedding-lightbox');
-  const weddingHistoryKey='masalWeddingLightbox';
-  let current=0;let lastFocus=null;let transitionToken=0;let weddingHistoryEntry=false;
+  const lightboxHistoryKey='masalLightbox';
+  let current=0;let lastFocus=null;let transitionToken=0;let lightboxHistoryEntry=false;let historyClosing=false;
   const visible=()=>items().filter(item=>!item.hidden);
   filters.forEach(button=>button.addEventListener('click',()=>{
     filters.forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
@@ -143,17 +142,20 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function close(){
     if(!box||box.hidden)return;
-    const restoreHistory=weddingLightbox&&weddingHistoryEntry;
-    weddingHistoryEntry=false;
+    const restoreHistory=lightboxHistoryEntry&&window.history.state?.[lightboxHistoryKey];
+    lightboxHistoryEntry=false;
     closeOverlay();
-    if(restoreHistory)window.history?.back();
+    if(restoreHistory){historyClosing=true;window.history.back();}
   }
   const boundItems=new WeakSet();
   function openItem(event,item){
-    if(event.defaultPrevented||!box)return;
-    if(weddingLightbox&&box.hidden&&window.history?.pushState){
-      try{window.history.pushState({[weddingHistoryKey]:true},'');weddingHistoryEntry=true;}
-      catch{weddingHistoryEntry=false;}
+    if(event.defaultPrevented||!box||historyClosing)return;
+    if(box.hidden&&window.history?.pushState){
+      try{
+        if(!window.history.state?.[lightboxHistoryKey])window.history.pushState({...window.history.state,[lightboxHistoryKey]:true},'');
+        lightboxHistoryEntry=true;
+      }
+      catch{lightboxHistoryEntry=false;}
     }
     lastFocus=item;box.hidden=false;document.body.style.overflow='hidden';
     show(visible().indexOf(item));box.querySelector('.lightbox-close').focus();
@@ -163,15 +165,16 @@ document.addEventListener('DOMContentLoaded',()=>{
     const item=event.target.closest?.('.gallery-item, [data-service-slide]');
     if(item&&!boundItems.has(item))openItem(event,item);
   });
-  if(weddingLightbox)window.addEventListener('popstate',event=>{
-    if(event.state?.[weddingHistoryKey]){
-      weddingHistoryEntry=true;
+  if(box)window.addEventListener('popstate',event=>{
+    historyClosing=false;
+    if(event.state?.[lightboxHistoryKey]){
+      lightboxHistoryEntry=true;
       if(box.hidden&&lastFocus){
         box.hidden=false;document.body.style.overflow='hidden';
         show(current);box.querySelector('.lightbox-close').focus();
       }
     }else{
-      weddingHistoryEntry=false;
+      lightboxHistoryEntry=false;
       if(!box.hidden)closeOverlay();
     }
   });

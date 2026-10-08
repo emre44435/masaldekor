@@ -15,6 +15,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     aranjmanlar: 'assets/images/flowers/aycicegi-aranjmani-03.webp',
     'kiz-isteme-cikolata-cicekleri': 'assets/images/flowers/kirmizi-buket-ve-cikolata-01.webp'
   };
+  const fallbackSummary = {
+    dugun: 'Size özel düğün dekoru ve davet tasarımı.',
+    nisan: 'Nişan töreniniz için zarif bir atmosfer.',
+    kina: 'Kına gecenize özel sahne ve dekor.',
+    'dogum-gunu': 'Kutlamanıza uygun konsept tasarımı.',
+    'arac-susleme': 'Özel gününüz için zarif ve özenli araç süslemeleri.',
+    'evlilik-teklifi': 'Teklif anınıza özel dekor ve çiçek dokunuşları.',
+    cicekler: 'Özel anlara eşlik eden taze çiçek tasarımları.',
+    buketler: 'Sevdiklerinize özel hazırlanan buketler.',
+    aranjmanlar: 'Mekâna ve kutlamaya özel çiçek aranjmanları.',
+    'kiz-isteme-cikolata-cicekleri': 'Kız isteme törenine özel çikolata ve çiçek sunumları.'
+  };
+  const fixedLabels = {
+    dugun: 'Düğün Organizasyonu', kina: 'Kına Gecesi', nisan: 'Nişan Organizasyonu',
+    'arac-susleme': 'Araç Süsleme', 'dogum-gunu': 'Doğum Günü Organizasyonu',
+    'evlilik-teklifi': 'Evlilik Teklifi', cicekler: 'Çiçekler', buketler: 'Buketler',
+    aranjmanlar: 'Aranjmanlar', 'kiz-isteme-cikolata-cicekleri': 'Kız İsteme Çikolata ve Çiçekleri'
+  };
+  const existingSummaries = new Map([...document.querySelectorAll('[data-category-card]')].map(card => [card.dataset.categoryCard, card.querySelector('.catalog-description')?.textContent.trim()]));
   const summaryFor = row => {
     const summary = (row.summary || '').trim();
     const staleOrganizationCopy = row.kind === 'cicekcilik' && /\b(nişan|düğün|kına)\b/i.test(summary) && !/\b(nişan|düğün|kına)\b/i.test(row.label || '');
@@ -45,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `kategori.html?slug=${encodeURIComponent(row.slug)}`;
   };
   const createCard = row => {
-    const label = row.label || row.slug;
+    const label = row.label?.trim() || fixedLabels[row.slug] || row.slug;
     const a = document.createElement('a');
     a.className = 'catalog-card';
     a.dataset.categoryCard = row.slug;
@@ -62,7 +81,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       img.height = row.cover_height || 900;
       img.loading = 'lazy';
       img.decoding = 'async';
-      a.append(img);
+      const media = document.createElement('span'); media.className = 'catalog-media';
+      media.append(img); a.append(media);
     } else {
       const art = document.createElement('span');
       art.className = 'catalog-art'; art.setAttribute('aria-hidden', 'true');
@@ -86,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     url.searchParams.set('select', 'slug,label,public_page,display_order,kind,summary,cover_url,cover_width,cover_height,is_visible');
     url.searchParams.set('is_visible', 'eq.true');
     url.searchParams.set('order', 'display_order.asc,slug.asc');
-    const response = await fetch(url, {headers: {apikey: config.publishableKey, Accept: 'application/json'}});
+    const response = await fetch(url, {cache: 'no-store', headers: {apikey: config.publishableKey, Accept: 'application/json'}});
     if (!response.ok) throw new Error(`Categories ${response.status}`);
     const rows = await response.json();
     if (!Array.isArray(rows)) throw new Error('Categories response');
@@ -100,3 +120,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.documentElement.dataset.catalogFallback = 'true';
   }
 });
+
+

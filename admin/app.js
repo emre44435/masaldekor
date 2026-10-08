@@ -6,7 +6,7 @@
   const list = $('#photo-list'), status = $('#status');
   const saveButton = $('#save-order');
   const preview = $('#preview');
-  let client, categories = [], category, photos = [], dirty = false, busy = false, statusTimer;
+  let client, categories = [], category, photos = [], dirty = false, busy = false, uploading = false, statusTimer, categoryOrderDirty = false;
 
   function message(text, error = false) {
     status.textContent = text;
@@ -24,9 +24,13 @@
   function setBusy(value) {
     busy = value;
     saveButton.disabled = value || !dirty;
-    $('#add-files').disabled = value;
+    $('#add-files').disabled = value || !category;
     $('#save-suggested-titles').disabled = value;
     $('#remove-duplicate-photos').disabled = value;
+    $('#save-category-order').disabled = value || !categoryOrderDirty;
+    $('#logout').disabled = value;
+    $('#bulk-upload-zone').setAttribute('aria-disabled', String(value || !category));
+    document.querySelectorAll('#create-category button, #edit-category button, #edit-category input, #edit-category select, #edit-category textarea, .category-move, .category-drag').forEach(control => control.disabled = value);
   }
   function curated(photo) {
     const data = window.MASAL_PRODUCT_DATA?.[photo.id];
@@ -98,6 +102,8 @@
     if (dirty && !confirm('Kaydedilmemiş sıralama var. Değişiklikleri iptal etmek istiyor musunuz?')) return;
     category = categories.find(item => item.slug === slug);
     if (!category) return;
+    setBusy(true);
+    try {
     const edit = $('#edit-category');
     edit.elements.label.value = category.label;
     edit.elements.kind.value = category.kind || 'organizasyon';
@@ -105,7 +111,8 @@
     edit.elements.is_visible.checked = category.is_visible !== false;
     $('#category-title').textContent = category.label;
     $('#public-link').href = '../' + category.public_page;
-    $('#categories').querySelectorAll('button').forEach(button => button.setAttribute('aria-current', String(button.dataset.slug === slug)));
+    $('#categories').querySelectorAll('.category-select').forEach(button => button.setAttribute('aria-current', String(button.dataset.slug === slug)));
+    photos = []; setDirty(false);
     list.textContent = 'Fotoğraflar yükleniyor…';
     const { data, error } = await client.from('gallery_photos').select('id,category,image_url,storage_path,alt_text,item_title,item_description,same_day_available,image_width,image_height,sort_order,created_at')
       .eq('category', slug).order('sort_order', { ascending: true }).order('created_at', { ascending: true }).order('id', { ascending: true });
@@ -118,9 +125,12 @@
     const duplicates = photos.filter(photo => curated(photo)?.duplicate);
     $('#save-suggested-titles').hidden = category.kind !== 'cicekcilik' || !suggestions.length;
     $('#remove-duplicate-photos').hidden = category.kind !== 'cicekcilik' || !duplicates.length;
+    } catch (error) { list.textContent = ''; fail(error); } finally { setBusy(false); }
   }
   async function saveOrder() {
-    if (!dirty || busy) return true;
+    if (busy) return false;
+    if (!(await saveCategoryOrder())) return false;
+    if (!dirty) return true;
     setBusy(true);
     const ids = [...list.querySelectorAll('.photo-card')].map(item => item.dataset.id);
     const { error } = await client.rpc('reorder_gallery', { p_category: category.slug, p_ids: ids });
@@ -174,30 +184,40 @@
     return /^[0-9a-f]{8}(?:\s+[0-9a-f]{4}){3}\s+[0-9a-f]{12}$/i.test(title) ? '' : title.slice(0, 120);
   }
   async function addFiles(files) {
-    if (busy || !files.length) return;
-    if (!(await saveOrder())) return;
+    if (busy || uploading || !category || !files.length) return;
+    uploading = true;
+    if (!(await saveOrder())) { uploading = false; return; }
     setBusy(true);
+    const selectedCategory = category;
     let added = 0;
-    for (const file of files) {
-      let uploaded;
-      try {
-        uploaded = await upload(file);
-        const { error } = await client.from('gallery_photos').insert({
-          category: category.slug, image_url: uploaded.url, storage_path: uploaded.path,
-          alt_text: `${category.label} fotoğrafı`, item_title: titleFromFile(file.name), image_width: uploaded.width,
-          image_height: uploaded.height, sort_order: photos.length + 1
-        });
-        if (error) throw error;
-        added++;
-        photos.push({ id: '', sort_order: photos.length + 1 });
-      } catch (error) {
-        if (uploaded) await client.storage.from('gallery-photos').remove([uploaded.path]);
-        fail(error); break;
+    const failures = [];
+    try {
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index];
+        $('#upload-progress').textContent = `${index + 1} / ${files.length} yükleniyor: ${file.name}`;
+        let uploaded;
+        try {
+          uploaded = await upload(file, selectedCategory.slug);
+          const { data, error } = await client.from('gallery_photos').insert({
+            category: selectedCategory.slug, image_url: uploaded.url, storage_path: uploaded.path,
+            alt_text: `${selectedCategory.label} fotoğrafı`, item_title: titleFromFile(file.name), image_width: uploaded.width,
+            image_height: uploaded.height, sort_order: photos.length + added + 1
+          }).select('id').single();
+          if (error) throw error;
+          if (!data?.id) throw new Error('Fotoğraf kaydı doğrulanamadı.');
+          added++;
+        } catch (error) {
+          if (uploaded) await client.storage.from('gallery-photos').remove([uploaded.path]);
+          failures.push(`${file.name}: ${error.message || 'Yüklenemedi'}`);
+        }
       }
+    } finally {
+      setBusy(false);
+      await loadCategory(selectedCategory.slug);
+      uploading = false;
+      $('#upload-progress').textContent = `${added} / ${files.length} görsel eklendi.` + (failures.length ? ` Yüklenemeyenler: ${failures.join(' • ')}` : '');
+      message(failures.length ? `${added} görsel eklendi, ${failures.length} görsel yüklenemedi. Ayrıntılar yükleme alanında.` : `${added} görsel eklendi.`, Boolean(failures.length));
     }
-    setBusy(false);
-    await loadCategory(category.slug);
-    if (added) message(`${added} fotoğraf eklendi.`);
   }
   async function replacePhoto(photo, file) {
     if (!(await saveOrder())) return;
@@ -252,17 +272,123 @@
     setBusy(false); await loadCategory(category.slug);
     if (!storageError) message('Fotoğraf silindi.');
   }
-  async function showAdmin() {
-    const { data, error } = await client.from('gallery_categories').select('slug,label,public_page,display_order,kind,summary,cover_url,cover_storage_path,cover_width,cover_height,is_visible,is_custom').order('display_order');
-    if (error) { fail(error); return; }
-    categories = data || [];
-    const nav = $('#categories'); nav.replaceChildren();
-    for (const item of categories) {
-      const button = document.createElement('button'); button.type = 'button';
-      button.textContent = item.label; button.dataset.slug = item.slug;
-      button.addEventListener('click', () => loadCategory(item.slug)); nav.append(button);
+  const categoryFields = 'slug,label,public_page,display_order,kind,summary,cover_url,cover_storage_path,cover_width,cover_height,is_visible,is_custom';
+  async function updateCategory(slug, values) {
+    const { data, error } = await client.from('gallery_categories').update(values).eq('slug', slug).select(categoryFields).single();
+    if (error) throw new Error(`Kategori kaydedilemedi: ${error.message}`);
+    if (!data || data.slug !== slug) throw new Error('Kategori güncellenmedi. Yönetici yetkisini kontrol edin.');
+    return data;
+  }
+  function setCategoryOrderDirty(value) {
+    categoryOrderDirty = value;
+    $('#save-category-order').disabled = busy || !value;
+    $('#category-order-status').textContent = value ? 'Kategori sırası değişti. Kaydet düğmesine basın.' : 'Kategori sırası kaydedildi.';
+  }
+  function syncCategoryOrder() {
+    const ids = [...$('#categories').querySelectorAll('.category-tab')].map(item => item.dataset.slug);
+    categories.sort((a, b) => ids.indexOf(a.slug) - ids.indexOf(b.slug));
+    setCategoryOrderDirty(true);
+  }
+  function renderCategories() {
+    const root = $('#categories'); root.replaceChildren();
+    for (const [kind, title] of [['organizasyon', 'Organizasyon'], ['cicekcilik', 'Çiçek']]) {
+      const section = document.createElement('section'); section.className = 'admin-category-group';
+      const heading = document.createElement('h2'); heading.textContent = title;
+      const nav = document.createElement('div'); nav.className = 'category-tabs'; nav.dataset.categoryKind = kind;
+      nav.setAttribute('role', 'group'); nav.setAttribute('aria-label', `${title} kategorileri`);
+      section.append(heading, nav); root.append(section);
+      const items = categories.filter(item => (item.kind || 'organizasyon') === kind);
+      if (!items.length) {
+        const empty = document.createElement('p'); empty.className = 'help'; empty.textContent = 'Henüz kategori yok. Yeni kategori oluştururken bu bölümü seçebilirsiniz.'; nav.append(empty);
+      }
+      items.forEach((item, index) => {
+      const wrapper = document.createElement('div'); wrapper.className = 'category-tab'; wrapper.dataset.slug = item.slug;
+      const handle = document.createElement('button'); handle.type = 'button'; handle.className = 'category-drag'; handle.textContent = '☷';
+      handle.setAttribute('aria-label', `${item.label} kategorisini sürükleyerek sırala`);
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'category-select';
+      button.textContent = item.label + (item.is_visible === false ? ' (Gizli)' : ''); button.dataset.slug = item.slug;
+      button.setAttribute('aria-current', String(category?.slug === item.slug));
+      button.addEventListener('click', () => loadCategory(item.slug));
+      wrapper.append(handle, button);
+      for (const [direction, symbol, title] of [[-1, '←', 'Öne taşı'], [1, '→', 'Arkaya taşı']]) {
+        const move = document.createElement('button'); move.type = 'button'; move.className = 'category-move'; move.textContent = symbol;
+        move.setAttribute('aria-label', `${item.label}: ${title}`);
+        move.disabled = direction < 0 ? index === 0 : index === items.length - 1;
+        move.addEventListener('click', () => {
+          if (busy) return;
+          const target = direction < 0 ? wrapper.previousElementSibling : wrapper.nextElementSibling;
+          if (!target) return;
+          nav.insertBefore(wrapper, direction < 0 ? target : target.nextSibling);
+          syncCategoryOrder(); renderCategories();
+        });
+        wrapper.append(move);
+      }
+      nav.append(wrapper);
+      });
     }
-    loginView.hidden = true; adminView.hidden = false; $('#logout').hidden = false;
+  }
+  async function saveCategoryOrder() {
+    if (!categoryOrderDirty) return true;
+    if (busy) return false;
+    setBusy(true);
+    try {
+      for (let index = 0; index < categories.length; index++) {
+        const row = await updateCategory(categories[index].slug, {display_order: index + 1});
+        categories[index] = row;
+      }
+      setCategoryOrderDirty(false);
+      message('Kategori sırası kaydedildi. Ana sayfayı yenileyerek görebilirsiniz.');
+      return true;
+    } catch (error) { fail(error); return false; }
+    finally { setBusy(false); }
+  }
+  $('#save-category-order').addEventListener('click', saveCategoryOrder);
+  let categoryDrag;
+  const categoryNav = $('#categories');
+  categoryNav.addEventListener('pointerdown', event => {
+    const handle = event.target.closest('.category-drag');
+    if (!handle || busy) return;
+    categoryDrag = {id: event.pointerId, item: handle.closest('.category-tab'), x: event.clientX, y: event.clientY, moved: false};
+    categoryNav.setPointerCapture(event.pointerId);
+  });
+  categoryNav.addEventListener('pointermove', event => {
+    if (!categoryDrag || categoryDrag.id !== event.pointerId) return;
+    if (!categoryDrag.moved && Math.hypot(event.clientX - categoryDrag.x, event.clientY - categoryDrag.y) < 8) return;
+    categoryDrag.moved = true;
+    const item = categoryDrag.item; item.classList.add('dragging'); item.style.pointerEvents = 'none';
+    const nav = item.parentElement;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.category-tab');
+    if (target && target !== item && target.parentElement === nav) {
+      const rect = target.getBoundingClientRect();
+      const before = event.clientX < rect.left + rect.width / 2;
+      nav.insertBefore(item, before ? target : target.nextSibling);
+    }
+    const rect = nav.getBoundingClientRect();
+    if (event.clientX < rect.left + 35) nav.scrollLeft -= 15;
+    if (event.clientX > rect.right - 35) nav.scrollLeft += 15;
+  });
+  function finishCategoryDrag(event) {
+    if (!categoryDrag || categoryDrag.id !== event.pointerId) return;
+    categoryDrag.item.classList.remove('dragging'); categoryDrag.item.style.pointerEvents = '';
+    if (categoryDrag.moved) { syncCategoryOrder(); renderCategories(); }
+    categoryDrag = null;
+    if (categoryNav.hasPointerCapture(event.pointerId)) categoryNav.releasePointerCapture(event.pointerId);
+  }
+  categoryNav.addEventListener('pointerup', finishCategoryDrag);
+  categoryNav.addEventListener('pointercancel', finishCategoryDrag);
+  categoryNav.addEventListener('lostpointercapture', finishCategoryDrag);
+  async function showAdmin() {
+    setBusy(true);
+    try {
+      const { data, error } = await client.from('gallery_categories').select(categoryFields).order('display_order').order('slug');
+      if (error) throw error;
+      categories = data || [];
+      renderCategories(); setCategoryOrderDirty(false);
+      loginView.hidden = true; adminView.hidden = false; $('#logout').hidden = false;
+      $('#edit-category').hidden = !categories.length;
+      if (!categories.length) { category = null; photos = []; renderPhotos(); $('#category-title').textContent = 'Yeni bir kategori oluşturun'; $('#public-link').removeAttribute('href'); }
+    } catch (error) { fail(error); return; }
+    finally { setBusy(false); }
     await loadCategory(category?.slug && categories.some(item => item.slug === category.slug) ? category.slug : categories[0]?.slug);
   }
   function slugify(value) {
@@ -271,37 +397,88 @@
   }
   $('#create-category').addEventListener('submit', async event => {
     event.preventDefault(); if (busy) return;
-    if (!(await saveOrder())) return;
     const form = event.currentTarget;
+    if (!(await saveOrder())) return;
     const label = form.elements.label.value.trim();
-    const slug = slugify(label);
-    if (slug.length < 2) { message('Daha uzun bir kategori adı yazın.', true); return; }
-    if (categories.some(item => item.slug === slug)) { message('Bu kategori adı zaten kullanılıyor.', true); return; }
+    const baseSlug = slugify(label);
+    const kind = form.elements.kind.value;
+    if (baseSlug.length < 2) { message('Daha uzun bir kategori adı yazın.', true); return; }
+    const existing = categories.find(item => slugify(item.label) === baseSlug && item.kind === kind && !['kurumsal', 'konsept'].includes(item.slug));
+    if (existing) {
+      if (existing.is_visible !== false) {
+        await loadCategory(existing.slug);
+        message('Bu adla yayında bir kategori var. Düzenlemek için kategori seçildi.', true); return;
+      }
+      setBusy(true);
+      try {
+        await updateCategory(existing.slug, {label, kind, summary: form.elements.summary.value.trim() || existing.summary || '', is_visible: true});
+        category = {slug: existing.slug};
+        form.reset(); form.closest('details').open = false;
+        setBusy(false); await showAdmin();
+        message('Gizli kategori tekrar yayına açıldı. Eski kapak ve fotoğrafları korundu.');
+      } catch (error) { fail(error); } finally { setBusy(false); }
+      return;
+    }
+    // URLs are permanent identifiers: a renamed category must not reserve its old display name.
+    let slug = baseSlug, suffix = 2;
+    while (categories.some(item => item.slug === slug) || ['kurumsal', 'konsept'].includes(slug)) {
+      slug = `${baseSlug.slice(0, 60)}-${suffix++}`;
+    }
     setBusy(true);
-    const { error } = await client.from('gallery_categories').insert({
-      slug, label, kind: form.elements.kind.value, summary: form.elements.summary.value.trim(),
+    try {
+    const { data: created, error } = await client.from('gallery_categories').insert({
+      slug, label, kind, summary: form.elements.summary.value.trim(),
       public_page: `kategori.html?slug=${slug}`, display_order: Math.max(0,...categories.map(item => item.display_order || 0)) + 1,
       is_visible: false, is_custom: true
-    });
+    }).select(categoryFields).single();
     setBusy(false);
-    if (error) { fail(error); return; }
+    if (error) throw error;
+    if (!created) throw new Error('Kategori oluşturulamadı. Yönetici yetkisini kontrol edin.');
     form.reset(); form.closest('details').open = false;
     category = {slug}; await showAdmin(); message('Taslak kategori oluşturuldu. Kapak ve fotoğrafları ekledikten sonra görünürlüğü açabilirsiniz.');
+    } catch (error) { fail(error); } finally { setBusy(false); }
   });
   $('#edit-category').addEventListener('submit', async event => {
     event.preventDefault(); if (!category || busy) return;
-    if (!(await saveOrder())) return;
     const form = event.currentTarget;
+    if (!(await saveOrder())) return;
     const label = form.elements.label.value.trim();
     if (!label) return;
     setBusy(true);
-    const { error } = await client.from('gallery_categories').update({
+    try {
+    await updateCategory(category.slug, {
       label, kind: form.elements.kind.value, summary: form.elements.summary.value.trim(),
       is_visible: form.elements.is_visible.checked
-    }).eq('slug', category.slug);
+    });
     setBusy(false);
-    if (error) { fail(error); return; }
-    await showAdmin(); message('Kategori bilgileri kaydedildi.');
+    await showAdmin(); message('Kategori bilgileri kaydedildi. Ana sayfayı yenileyerek görebilirsiniz.');
+    } catch (error) { fail(error); } finally { setBusy(false); }
+  });
+  $('#remove-category-cover').addEventListener('click', async () => {
+    if (!category || busy) return;
+    if (!category.cover_url) { message('Bu kategoride yüklenmiş kapak yok.'); return; }
+    if (!confirm('Yüklediğiniz kategori kapağı kaldırılsın mı? Kategorinin fotoğrafları korunacak.')) return;
+    if (!(await saveOrder())) return;
+    const oldPath = category.cover_storage_path;
+    setBusy(true);
+    try {
+      await updateCategory(category.slug, {cover_url: null, cover_storage_path: null, cover_width: null, cover_height: null});
+      let storageError;
+      if (oldPath) storageError = (await client.storage.from('gallery-photos').remove([oldPath])).error;
+      setBusy(false); await showAdmin();
+      message(storageError ? 'Kapak siteden kaldırıldı; depolama dosyası temizlenemedi.' : 'Yüklenen kategori kapağı kaldırıldı.', Boolean(storageError));
+    } catch (error) { fail(error); } finally { setBusy(false); }
+  });
+  $('#delete-category').addEventListener('click', async () => {
+    if (!category || busy) return;
+    if (!confirm(`“${category.label}” kategorisi siteden kaldırılsın mı? Tekrar açabilmeniz için kapak ve fotoğrafları korunacak.`)) return;
+    if (!(await saveOrder())) return;
+    setBusy(true);
+    try {
+      await updateCategory(category.slug, {is_visible: false});
+      setBusy(false); await showAdmin();
+      message('Kategori siteden kaldırıldı. Aynı ad ve bölümle yeniden oluşturabilir veya Sitede göster seçeneğiyle geri açabilirsiniz.');
+    } catch (error) { fail(error); } finally { setBusy(false); }
   });
   $('#cover-file').addEventListener('change', async event => {
     const file = event.target.files[0]; event.target.value = '';
@@ -311,11 +488,10 @@
     try {
       uploaded = await upload(file, `covers/${category.slug}`);
       const oldPath = category.cover_storage_path;
-      const { error } = await client.from('gallery_categories').update({
+      await updateCategory(category.slug, {
         cover_url: uploaded.url, cover_storage_path: uploaded.path,
         cover_width: uploaded.width, cover_height: uploaded.height
-      }).eq('slug', category.slug);
-      if (error) throw error;
+      });
       if (oldPath) await client.storage.from('gallery-photos').remove([oldPath]);
       setBusy(false); await showAdmin(); message('Kategori kapağı güncellendi.');
     } catch (error) {
@@ -342,8 +518,21 @@
     form.reset(); await checkAdmin();
   });
   $('#logout').addEventListener('click', async () => {
-    if (dirty && !confirm('Kaydedilmemiş sıralamayı iptal edip çıkış yapmak istiyor musunuz?')) return;
+    if ((dirty || categoryOrderDirty) && !confirm('Kaydedilmemiş sıralamayı iptal edip çıkış yapmak istiyor musunuz?')) return;
     await client.auth.signOut(); adminView.hidden = true; loginView.hidden = false; $('#logout').hidden = true;
+  });
+  const bulkZone = $('#bulk-upload-zone');
+  bulkZone.addEventListener('click', () => { if (!busy && category) $('#add-files').click(); });
+  bulkZone.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (!busy && category) $('#add-files').click(); }
+  });
+  for (const name of ['dragenter', 'dragover']) bulkZone.addEventListener(name, event => {
+    event.preventDefault(); if (!busy && category) { event.dataTransfer.dropEffect = 'copy'; bulkZone.classList.add('drag-over'); }
+  });
+  bulkZone.addEventListener('dragleave', () => bulkZone.classList.remove('drag-over'));
+  bulkZone.addEventListener('drop', event => {
+    event.preventDefault(); bulkZone.classList.remove('drag-over');
+    if (!busy && category) addFiles([...event.dataTransfer.files]);
   });
   $('#add-files').addEventListener('change', event => {
     const files = [...event.target.files]; event.target.value = ''; addFiles(files);
@@ -456,7 +645,7 @@
   }
   list.addEventListener('pointerup', finishDrag);
   list.addEventListener('pointercancel', finishDrag);
-  window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+  window.addEventListener('beforeunload', event => { if (dirty || categoryOrderDirty) { event.preventDefault(); event.returnValue = ''; } });
 
   if (!/^https:\/\/[^/]+/.test(config.url || '') || !config.publishableKey) {
     message('Önce js/gallery-config.js dosyasına Supabase URL ve publishable key girin.', true);
@@ -471,3 +660,6 @@
     checkAdmin();
   }
 })();
+
+
+

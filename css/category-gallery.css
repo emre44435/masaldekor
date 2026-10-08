@@ -1,0 +1,4 @@
+/* Custom organization cards keep the uploaded image proportions and admin order. */
+.page-kategori .dynamic-product-grid{align-items:start}
+.page-kategori .dynamic-product{align-self:start}
+.page-kategori .dynamic-product>img{display:block;width:100%;height:auto;aspect-ratio:auto;object-fit:contain}

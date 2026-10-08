@@ -1,5 +1,7 @@
-document.addEventListener('DOMContentLoaded',()=>{
+window.MASAL_INIT_SERVICE_CAROUSELS=()=>{
   document.querySelectorAll('[data-service-carousel]').forEach(carousel=>{
+    if(carousel.dataset.carouselInitialized)return;
+    carousel.dataset.carouselInitialized='true';
     const viewport=carousel.querySelector('.wedding-carousel-viewport');
     const track=carousel.querySelector('[data-carousel-track]');
     let slides=[...carousel.querySelectorAll('[data-service-slide]')];
@@ -88,6 +90,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       window.setTimeout(()=>{wheelLocked=false;},420);
     },{passive:false});
     carousel.addEventListener('keydown',event=>{
+      if(!slides.length)return;
       if(event.target.closest('.wedding-carousel-controls'))return;
       let destination=null;
       if(event.key==='ArrowLeft')destination=active-1;
@@ -102,6 +105,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   const lightbox=document.querySelector('.wedding-lightbox');
   const lightboxPhoto=lightbox?.querySelector('figure');
+  if(!lightboxPhoto||lightboxPhoto.dataset.swipeInitialized)return;
+  lightboxPhoto.dataset.swipeInitialized='true';
   let lightboxStart=null;
   lightboxPhoto?.addEventListener('pointerdown',event=>{
     lightboxStart={x:event.clientX,y:event.clientY,id:event.pointerId};
@@ -116,4 +121,5 @@ document.addEventListener('DOMContentLoaded',()=>{
     lightboxStart=null;
   });
   lightboxPhoto?.addEventListener('pointercancel',()=>{lightboxStart=null;});
-});
+};
+document.addEventListener('DOMContentLoaded',window.MASAL_INIT_SERVICE_CAROUSELS);
