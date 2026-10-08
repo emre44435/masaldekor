@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const groups = [...document.querySelectorAll('[data-category-grid]')];
   const config = window.MASAL_GALLERY_CONFIG || {};
-  if (!groups.length || !/^https:\/\//.test(config.url || '') || !config.publishableKey) return;
+  const revealGroups = () => groups.forEach(group => group.classList.add('is-ready'));
+  if (!groups.length) return;
+  if (!/^https:\/\//.test(config.url || '') || !config.publishableKey) { revealGroups(); return; }
 
   const fallbackCover = {
     dugun: 'assets/images/dugun-organizasyonu.webp',
@@ -126,6 +128,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch {
     // Keep the built-in cards if Supabase is temporarily unavailable.
     document.documentElement.dataset.catalogFallback = 'true';
+  } finally {
+    revealGroups();
   }
 });
 

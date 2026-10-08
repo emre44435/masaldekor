@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('#dynamic-summary').textContent = text;
     document.querySelector('#dynamic-offer').hidden = true;
     gallery.replaceChildren();
+    document.querySelector('#main-content').classList.add('is-ready');
   };
   if (!/^[a-z0-9-]{2,80}$/.test(slug)) { showError('Lütfen kategoriler sayfasından bir seçim yapın.'); return; }
   if (!/^https:\/\//.test(config.url || '') || !config.publishableKey) {
@@ -119,5 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     gallery.replaceChildren(...cards);
   } catch {
     showError('Kategori şu anda yüklenemiyor. Lütfen daha sonra tekrar deneyin.');
+  } finally {
+    document.querySelector('#main-content').classList.add('is-ready');
   }
 });
