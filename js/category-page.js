@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!gallery) return;
   const slug = new URLSearchParams(location.search).get('slug') || '';
   if (slug === 'nisan-2') { location.replace('hizmet-nisan.html'); return; }
-  if (['kurumsal', 'konsept'].includes(slug)) { location.replace('hizmetler.html'); return; }
   const showError = text => {
     document.querySelector('#dynamic-title').textContent = 'Kategori bulunamadı';
     document.querySelector('#dynamic-summary').textContent = text;
@@ -35,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.querySelector('#dynamic-title').textContent = category.label;
     document.querySelector('#dynamic-breadcrumb').textContent = category.label;
-    document.querySelector('#dynamic-kind').textContent = category.kind === 'cicekcilik' ? 'MASAL DEKOR / ÇİÇEKÇİLİK / ' + category.label : 'MASAL DEKOR / ORGANİZASYON / ' + category.label;
+    document.querySelector('#dynamic-kind').textContent = category.kind === 'cicekcilik' ? 'MASAL DEKOR' : 'MASAL DEKOR / ' + category.label;
     document.querySelector('#dynamic-summary').textContent = summary;
     document.querySelector('#dynamic-offer').href = 'https://wa.me/905304476344?text=' + encodeURIComponent(`Merhaba Masal Dekor, ${category.label} kategorisi hakkında bilgi almak istiyorum. Sayfa: ${location.href}`);
     document.title = `${category.label} | Masal Dekor Darende`;
@@ -56,6 +55,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!photoResponse.ok) throw new Error(`Gallery ${photoResponse.status}`);
     const rows = await photoResponse.json();
     if (!Array.isArray(rows)) throw new Error('Gallery response');
+    if (category.kind === 'organizasyon' && !category.cover_url && rows[0]?.image_url) {
+      document.querySelector('.dynamic-category-hero').style.backgroundImage = `linear-gradient(90deg,rgba(8,20,15,.86),rgba(8,20,15,.38) 62%,rgba(8,20,15,.1)),url("${assetUrl(rows[0].image_url)}")`;
+    }
     if (category.kind === 'organizasyon') {
       const section=gallery.closest('section');
       const heading=section.querySelector('.catalog-group-heading');

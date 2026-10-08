@@ -5,11 +5,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const fallbackCover = {
     dugun: 'assets/images/dugun-organizasyonu.webp',
-    nisan: 'assets/images/nisan-organizasyonu.webp',
+    nisan: 'assets/images/flowers/aycicegi-aranjmani-03.webp',
+    'nisan-2': 'assets/images/nisan-organizasyonu.webp',
     kina: 'assets/images/kina-gecesi.webp',
     'dogum-gunu': 'assets/images/dogum-gunu.webp',
     'arac-susleme': 'assets/images/car-hero.webp',
     'evlilik-teklifi': 'assets/images/konsept-tasarim.webp',
+    kurumsal: 'assets/images/kurumsal-etkinlik.webp',
+    konsept: 'assets/images/konsept-tasarim.webp',
     cicekler: 'assets/images/flowers/renkli-kir-cicekleri-buketi-05.webp',
     buketler: 'assets/images/flowers/pembe-lilyum-buketi-06.webp',
     aranjmanlar: 'assets/images/flowers/aycicegi-aranjmani-03.webp',
@@ -17,20 +20,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
   const fallbackSummary = {
     dugun: 'Size özel düğün dekoru ve davet tasarımı.',
-    nisan: 'Nişan töreniniz için zarif bir atmosfer.',
+    nisan: 'Saksı çiçekleri ve aranjman seçenekleri.',
+    'nisan-2': 'Nişan töreniniz için zarif bir atmosfer.',
     kina: 'Kına gecenize özel sahne ve dekor.',
     'dogum-gunu': 'Kutlamanıza uygun konsept tasarımı.',
     'arac-susleme': 'Özel gününüz için zarif ve özenli araç süslemeleri.',
     'evlilik-teklifi': 'Teklif anınıza özel dekor ve çiçek dokunuşları.',
+    kurumsal: 'Kurumsal etkinlikler için özenli mekân ve sahne tasarımı.',
+    konsept: 'Size özel etkinlik konsepti ve dekor tasarımı.',
     cicekler: 'Özel anlara eşlik eden taze çiçek tasarımları.',
     buketler: 'Sevdiklerinize özel hazırlanan buketler.',
     aranjmanlar: 'Mekâna ve kutlamaya özel çiçek aranjmanları.',
     'kiz-isteme-cikolata-cicekleri': 'Kız isteme törenine özel çikolata ve çiçek sunumları.'
   };
   const fixedLabels = {
-    dugun: 'Düğün Organizasyonu', kina: 'Kına Gecesi', nisan: 'Nişan Organizasyonu',
+    dugun: 'Düğün Organizasyonu', kina: 'Kına Gecesi', nisan: 'Saksı Çiçekleri ve Aranjmanlar',
+    'nisan-2': 'Nişan Organizasyonu',
     'arac-susleme': 'Araç Süsleme', 'dogum-gunu': 'Doğum Günü Organizasyonu',
     'evlilik-teklifi': 'Evlilik Teklifi', cicekler: 'Çiçekler', buketler: 'Buketler',
+    kurumsal: 'Kurumsal Etkinlikler', konsept: 'Konsept Tasarım',
     aranjmanlar: 'Aranjmanlar', 'kiz-isteme-cikolata-cicekleri': 'Kız İsteme Çikolata ve Çiçekleri'
   };
   const existingSummaries = new Map([...document.querySelectorAll('[data-category-card]')].map(card => [card.dataset.categoryCard, card.querySelector('.catalog-description')?.textContent.trim()]));
@@ -111,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const rows = await response.json();
     if (!Array.isArray(rows)) throw new Error('Categories response');
     for (const group of groups) {
-      const cards = rows.filter(row => row.kind === group.dataset.categoryGrid && !['kurumsal', 'konsept'].includes(row.slug)).map(createCard);
+      const cards = rows.filter(row => row.kind === group.dataset.categoryGrid).map(createCard);
       group.replaceChildren(...cards);
       group.closest('.catalog-group').hidden = !cards.length;
     }
