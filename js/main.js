@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     boxImg?.getAnimations?.().forEach(animation=>animation.cancel());
     previousImage?.getAnimations?.().forEach(animation=>animation.cancel());
     if(previousImage){previousImage.hidden=true;previousImage.removeAttribute('src');}
-    box.hidden=true;document.body.style.overflow='';boxImg.removeAttribute('src');lastFocus?.focus();
+    box.hidden=true;document.body.style.overflow='';document.body.classList.remove('lightbox-open');boxImg.removeAttribute('src');lastFocus?.focus();
   }
   function close(){
     if(!box||box.hidden)return;
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       catch{lightboxHistoryEntry=false;}
     }
-    lastFocus=item;box.hidden=false;document.body.style.overflow='hidden';
+    lastFocus=item;box.hidden=false;document.body.style.overflow='hidden';document.body.classList.add('lightbox-open');
     show(visible().indexOf(item));box.querySelector('.lightbox-close').focus();
   }
   items().forEach(item=>{boundItems.add(item);item.addEventListener('click',event=>openItem(event,item));});
@@ -166,11 +166,17 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(item&&!boundItems.has(item))openItem(event,item);
   });
   if(box)window.addEventListener('popstate',event=>{
+    if(historyClosing){
+      historyClosing=false;
+      lightboxHistoryEntry=false;
+      if(!box.hidden)closeOverlay();
+      return;
+    }
     historyClosing=false;
     if(event.state?.[lightboxHistoryKey]){
       lightboxHistoryEntry=true;
       if(box.hidden&&lastFocus){
-        box.hidden=false;document.body.style.overflow='hidden';
+        box.hidden=false;document.body.style.overflow='hidden';document.body.classList.add('lightbox-open');
         show(current);box.querySelector('.lightbox-close').focus();
       }
     }else{
