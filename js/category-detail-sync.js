@@ -1,14 +1,21 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const main = document.querySelector('main[data-category-slug][data-category-kind]');
+  if (!main) return;
+  const finish = () => {
+    main.dataset.categoryInfoReady = 'true';
+    if (main.dataset.categoryPhotosReady === 'true') main.classList.add('category-ready');
+  };
   const config = window.MASAL_GALLERY_CONFIG || {};
-  if (!main || !/^https:\/\//.test(config.url || '') || !config.publishableKey) return;
+  if (!/^https:\/\//.test(config.url || '') || !config.publishableKey) { finish(); return; }
   const slug = main.dataset.categorySlug;
-  if (!/^[a-z0-9-]+$/.test(slug)) return;
+  if (!/^[a-z0-9-]+$/.test(slug)) { finish(); return; }
   const url = new URL(`${config.url.replace(/\/$/, '')}/rest/v1/gallery_categories`);
   url.searchParams.set('select', 'slug,label,kind,summary,is_visible');
   url.searchParams.set('slug', `eq.${slug}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7000);
   try {
-    const response = await fetch(url, {headers: {apikey: config.publishableKey, Accept: 'application/json'}});
+    const response = await fetch(url, {signal: controller.signal, headers: {apikey: config.publishableKey, Accept: 'application/json'}});
     if (!response.ok) return;
     const category = (await response.json())[0];
     if (!category?.is_visible || category.kind !== main.dataset.categoryKind) return;
@@ -29,7 +36,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const flowerIntro = main.querySelector('.flower-collection-intro');
     if (flowerIntro && (changed || storedSummary)) flowerIntro.textContent = summary;
     const gallery = main.querySelector('[data-gallery-grid]');
-    if (gallery) gallery.dataset.categoryLabel = label;
+    if (gallery) {
+      gallery.dataset.categoryLabel = label;
+      gallery.querySelectorAll('.flower-product-copy small').forEach(kicker => { kicker.textContent = label; });
+    }
+    const carousel = main.querySelector('[data-service-carousel]');
+    if (carousel) carousel.setAttribute('aria-label', `${label} fotoğrafları`);
     // Static samples can belong to the former label. Never display them as another category.
     if (changed && main.dataset.categoryKind === 'cicekcilik' && gallery) {
       gallery.querySelectorAll('[data-static-product]').forEach(card => card.remove());
@@ -51,5 +63,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     main.querySelector('.flower-product-grid')?.setAttribute('aria-label', `${label} fotoğraf galerisi`);
   } catch {
     // The static page stays usable while the public category service is unavailable.
+  } finally {
+    clearTimeout(timeout);
+    finish();
   }
 });

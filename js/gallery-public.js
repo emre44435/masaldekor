@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const detailMain=document.querySelector('main[data-category-slug][data-category-kind]');
+  const finish=()=>{
+    if(!detailMain)return;
+    detailMain.dataset.categoryPhotosReady='true';
+    if(detailMain.dataset.categoryInfoReady==='true')detailMain.classList.add('category-ready');
+  };
   const organizationCategories=new Set(['nisan-2','arac-susleme','dogum-gunu','kurumsal','konsept','evlilik-teklifi']);
   const organizationGrid=document.querySelector('[data-gallery-grid][data-gallery-category]');
   if(organizationGrid&&organizationCategories.has(organizationGrid.dataset.galleryCategory)){
@@ -34,18 +40,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   const config=window.MASAL_GALLERY_CONFIG||{};
-  if(!/^https:\/\/[^/]+/.test(config.url||'')||!config.publishableKey)return;
+  if(!/^https:\/\/[^/]+/.test(config.url||'')||!config.publishableKey){finish();return;}
   const carousel=document.querySelector('[data-service-carousel][data-gallery-category]');
   const grid=document.querySelector('[data-gallery-grid][data-gallery-category]');
   const host=carousel||grid;
-  if(!host)return;
+  if(!host){finish();return;}
   const category=host.dataset.galleryCategory;
   const url=new URL(`${config.url.replace(/\/$/,'')}/rest/v1/gallery_photos`);
   url.searchParams.set('select','id,image_url,alt_text,item_title,item_description,same_day_available,image_width,image_height');
   url.searchParams.set('category',`eq.${category}`);
   url.searchParams.set('order','sort_order.asc,created_at.asc,id.asc');
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),7000);
   try{
-    const response=await fetch(url,{cache:'default',headers:{apikey:config.publishableKey,Accept:'application/json'}});
+    const response=await fetch(url,{cache:'default',signal:controller.signal,headers:{apikey:config.publishableKey,Accept:'application/json'}});
     if(!response.ok)throw new Error(`Gallery ${response.status}`);
     const responseRows=await response.json();
     if(!Array.isArray(responseRows))throw new Error('Gallery response');
@@ -95,8 +103,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       else grid.replaceChildren(...cards);
     }
+    const lead=(carousel||grid)?.querySelector('img');
+    if(lead?.decode){
+      await Promise.race([lead.decode().catch(()=>{}),new Promise(resolve=>setTimeout(resolve,2000))]);
+    }
   }catch(error){
     // Keep the existing static gallery if Supabase is temporarily unreachable.
     document.documentElement.dataset.galleryFallback='true';
+  }finally{
+    clearTimeout(timeout);
+    finish();
   }
 });

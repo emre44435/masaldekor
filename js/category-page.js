@@ -18,11 +18,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const headers = {apikey: config.publishableKey, Accept: 'application/json'};
   const endpoint = config.url.replace(/\/$/, '') + '/rest/v1/';
   const assetUrl = value => /^https:\/\//i.test(value) ? value : new URL(value, document.baseURI).href;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  const waitForLeadImage = async () => {
+    const lead = document.querySelector('.dynamic-category-gallery .wedding-carousel img, #dynamic-gallery img');
+    if (lead?.decode) await Promise.race([lead.decode().catch(() => {}), new Promise(resolve => setTimeout(resolve, 2000))]);
+  };
   try {
     const categoryUrl = new URL(endpoint + 'gallery_categories');
     categoryUrl.searchParams.set('select', 'slug,label,kind,summary,cover_url,is_visible');
     categoryUrl.searchParams.set('slug', `eq.${slug}`);
-    const categoryResponse = await fetch(categoryUrl, {cache: 'no-store', headers});
+    const categoryResponse = await fetch(categoryUrl, {cache: 'no-store', headers, signal: controller.signal});
     if (!categoryResponse.ok) throw new Error(`Category ${categoryResponse.status}`);
     const category = (await categoryResponse.json())[0];
     if (!category?.is_visible) { showError('Bu kategori artık yayında değil.'); return; }
@@ -52,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     photoUrl.searchParams.set('select', 'id,image_url,alt_text,item_title,item_description,same_day_available,image_width,image_height');
     photoUrl.searchParams.set('category', `eq.${slug}`);
     photoUrl.searchParams.set('order', 'sort_order.asc,created_at.asc,id.asc');
-    const photoResponse = await fetch(photoUrl, {cache: 'no-store', headers});
+    const photoResponse = await fetch(photoUrl, {cache: 'no-store', headers, signal: controller.signal});
     if (!photoResponse.ok) throw new Error(`Gallery ${photoResponse.status}`);
     const rows = await photoResponse.json();
     if (!Array.isArray(rows)) throw new Error('Gallery response');
@@ -87,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if(!slides.length){const empty=document.createElement('p');empty.className='gallery-empty';empty.textContent='Bu kategoriye ait fotoğraflar yakında eklenecek.';track.append(empty);}
       section.replaceChildren(heading,carousel);document.body.classList.add('page-service-carousel');
       document.querySelector('.lightbox')?.classList.add('wedding-lightbox');
-      window.MASAL_INIT_SERVICE_CAROUSELS?.();return;
+      window.MASAL_INIT_SERVICE_CAROUSELS?.();await waitForLeadImage();return;
     }
     if (!rows.length) {
       const empty = document.createElement('p'); empty.className = 'gallery-empty';
@@ -118,9 +124,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       copy.append(kicker, name); button.append(img, copy); return button;
     });
     gallery.replaceChildren(...cards);
+    await waitForLeadImage();
   } catch {
     showError('Kategori şu anda yüklenemiyor. Lütfen daha sonra tekrar deneyin.');
   } finally {
+    clearTimeout(timeout);
     document.querySelector('#main-content').classList.add('is-ready');
   }
 });
