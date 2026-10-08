@@ -1,4 +1,6 @@
 /* Detail-page alignment only; gallery dimensions and controls stay in their existing styles. */
+main .lightbox{z-index:1200}
+body.lightbox-open .site-header{z-index:0}
 .detail-breadcrumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 0;font:600 .7rem/1.5 'DM Sans',sans-serif;letter-spacing:.06em;color:inherit;opacity:.82}
 .detail-breadcrumb a{text-decoration:underline;text-underline-offset:3px}
 main[data-category-kind="cicekcilik"] .detail-breadcrumb{justify-content:center;color:#716449}
