@@ -20,10 +20,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const assetUrl = value => /^https:\/\//i.test(value) ? value : new URL(value, document.baseURI).href;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
-  const waitForLeadImage = async () => {
-    const lead = document.querySelector('.dynamic-category-gallery .wedding-carousel img, #dynamic-gallery img');
-    if (lead?.decode) await Promise.race([lead.decode().catch(() => {}), new Promise(resolve => setTimeout(resolve, 2000))]);
-  };
   try {
     const categoryUrl = new URL(endpoint + 'gallery_categories');
     categoryUrl.searchParams.set('select', 'slug,label,kind,summary,cover_url,is_visible');
@@ -83,8 +79,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const slides=rows.map((row,index)=>{
         const button=document.createElement('button');button.className='wedding-slide';button.type='button';
         button.dataset.serviceSlide='';button.dataset.src=assetUrl(row.image_url);button.dataset.caption=row.alt_text||`${category.label} fotoğrafı`;
-        const img=document.createElement('img');img.src=button.dataset.src;img.alt=button.dataset.caption;
-        img.width=row.image_width||1200;img.height=row.image_height||1800;img.loading=index?'lazy':'eager';img.decoding='async';img.draggable=false;
+        const img=document.createElement('img');img.alt=button.dataset.caption;
+        img.width=row.image_width||1200;img.height=row.image_height||1800;img.loading=index?'lazy':'eager';img.decoding='async';img.draggable=false;img.src=button.dataset.src;
         const zoom=document.createElement('span');zoom.className='wedding-slide-zoom';zoom.setAttribute('aria-hidden','true');
         zoom.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.7" cy="10.7" r="6.7"/><path d="m16 16 5 5M10.7 8v5.4M8 10.7h5.4"/></svg><span>FOTOĞRAFI BÜYÜT</span>';
         button.append(img,zoom);return button;
@@ -93,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if(!slides.length){const empty=document.createElement('p');empty.className='gallery-empty';empty.textContent='Bu kategoriye ait fotoğraflar yakında eklenecek.';track.append(empty);}
       section.replaceChildren(heading,carousel);document.body.classList.add('page-service-carousel');
       document.querySelector('.lightbox')?.classList.add('wedding-lightbox');
-      window.MASAL_INIT_SERVICE_CAROUSELS?.();await waitForLeadImage();return;
+      window.MASAL_INIT_SERVICE_CAROUSELS?.();return;
     }
     if (!rows.length) {
       const empty = document.createElement('p'); empty.className = 'gallery-empty';
@@ -114,17 +110,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       button.dataset.src = assetUrl(row.image_url);
       button.dataset.caption = title;
       button.setAttribute('aria-label', `${index + 1}. görseli büyüt: ${title}`);
-      const img = document.createElement('img'); img.src = button.dataset.src;
+      const img = document.createElement('img');
       img.alt = row.alt_text || title;
       img.width = row.image_width || 1200; img.height = row.image_height || 1800;
-      img.loading = 'lazy'; img.decoding = 'async';
+      img.loading = index === 0 ? 'eager' : 'lazy'; img.decoding = 'async'; img.src = button.dataset.src;
       const copy = document.createElement('span');
       const kicker = document.createElement('small'); kicker.textContent = category.label;
       const name = document.createElement('strong'); name.textContent = title;
       copy.append(kicker, name); button.append(img, copy); return button;
     });
     gallery.replaceChildren(...cards);
-    await waitForLeadImage();
   } catch {
     showError('Kategori şu anda yüklenemiyor. Lütfen daha sonra tekrar deneyin.');
   } finally {

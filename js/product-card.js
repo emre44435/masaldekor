@@ -13,18 +13,18 @@ window.MASAL_PRODUCT_CARD = (row, categoryLabel, assetUrl, index = 99) => {
   imageButton.dataset.caption = title;
   imageButton.setAttribute('aria-label', `${title} görselini büyüt`);
   const image = document.createElement('img');
-  if (curated?.asset) {
-    const thumb = width => new URL(curated.asset.replace(/\.webp$/i, `-${width}.webp`), document.baseURI).href;
-    image.src = thumb(640);
-    image.srcset = `${thumb(320)} 320w, ${thumb(640)} 640w`;
-    image.sizes = '(max-width: 750px) 50vw, (max-width: 1050px) 33vw, 25vw';
-  } else {
-    image.src = imageButton.dataset.src;
-  }
   image.alt = `${title} — Masal Dekor Darende`;
   image.width = row.image_width || 1200; image.height = row.image_height || 1800;
   image.loading = index < 4 ? 'eager' : 'lazy'; image.decoding = 'async';
   if (index === 0) image.fetchPriority = 'high';
+  if (curated?.asset) {
+    const thumb = width => new URL(curated.asset.replace(/\.webp$/i, `-${width}.webp`), document.baseURI).href;
+    image.sizes = '(max-width: 420px) calc((100vw - 43px) / 2), (max-width: 700px) min(254px, calc((100vw - 46px) / 2)), (max-width: 750px) calc((100vw - 76px) / 2), (max-width: 1050px) calc((100vw - 104px) / 3), min(285px, calc((100vw - 124px) / 4))';
+    image.srcset = `${thumb(320)} 320w, ${thumb(640)} 640w`;
+    image.src = thumb(640);
+  } else {
+    image.src = imageButton.dataset.src;
+  }
   imageButton.append(image);
   if (row.same_day_available === true) {
     const badge = document.createElement('span');

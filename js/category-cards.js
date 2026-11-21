@@ -20,6 +20,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     aranjmanlar: 'assets/images/flowers/aycicegi-aranjmani-03.webp',
     'kiz-isteme-cikolata-cicekleri': 'assets/images/flowers/kirmizi-buket-ve-cikolata-01.webp'
   };
+  const responsiveCovers = new Set([
+    'assets/images/flowers/aycicegi-aranjmani-03.webp',
+    'assets/images/flowers/kirmizi-buket-ve-cikolata-01.webp',
+    'assets/images/flowers/pembe-lilyum-buketi-06.webp',
+    'assets/images/flowers/renkli-kir-cicekleri-buketi-05.webp'
+  ]);
   const fallbackSummary = {
     dugun: 'Size özel düğün dekoru ve davet tasarımı.',
     nisan: 'Saksı çiçekleri ve aranjman seçenekleri.',
@@ -85,12 +91,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (cover) {
       const img = document.createElement('img');
       img.className = 'catalog-photo';
-      img.src = imageUrl(cover);
       img.alt = `${label} kategorisi`;
       img.width = row.cover_width || 1200;
       img.height = row.cover_height || 900;
       img.loading = 'lazy';
       img.decoding = 'async';
+      const coverUrl = imageUrl(cover);
+      if (responsiveCovers.has(cover)) {
+        img.sizes = '(max-width: 700px) min(520px, calc(100vw - 34px)), (max-width: 1050px) 50vw, 420px';
+        img.srcset = `${coverUrl.replace(/\.webp$/, '-320.webp')} 320w, ${coverUrl.replace(/\.webp$/, '-640.webp')} 640w`;
+        img.src = coverUrl.replace(/\.webp$/, '-640.webp');
+      } else {
+        img.src = coverUrl;
+      }
       const media = document.createElement('span'); media.className = 'catalog-media';
       media.append(img); a.append(media);
     } else {

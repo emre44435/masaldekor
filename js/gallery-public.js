@@ -67,15 +67,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(carousel){
       const track=carousel.querySelector('[data-carousel-track]');
       const service=carousel.dataset.serviceName||'organizasyon';
+      const imageObserver = typeof IntersectionObserver === 'function'
+        ? new IntersectionObserver((entries, observer) => {
+          for (const {isIntersecting, target} of entries) {
+            if (!isIntersecting) continue;
+            target.loading = 'eager';
+            target.src = target.dataset.gallerySource;
+            observer.unobserve(target);
+          }
+        }, {rootMargin: '360px 0px'})
+        : null;
       const slides=rows.map((row,index)=>{
         const button=document.createElement('button');
         button.className='wedding-slide';button.type='button';
         button.dataset.serviceSlide='';button.dataset.src=source(row.image_url);
         button.dataset.caption=row.alt_text||`${service} fotoğrafı`;
         button.setAttribute('aria-label',`${index+1}. ${service} fotoğrafını görüntüle`);
-        const img=document.createElement('img');img.src=button.dataset.src;
+        const img=document.createElement('img');
         img.alt=button.dataset.caption;img.width=row.image_width||1200;img.height=row.image_height||1800;
         img.loading='lazy';img.decoding='async';img.draggable=false;
+        if (index > 1 && imageObserver && /\.png(?:[?#]|$)/i.test(button.dataset.src)) {
+          img.dataset.gallerySource = button.dataset.src;
+          imageObserver.observe(img);
+        } else {
+          img.src = button.dataset.src;
+        }
         const zoom=document.createElement('span');zoom.className='wedding-slide-zoom';zoom.setAttribute('aria-hidden','true');
         zoom.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.7" cy="10.7" r="6.7"/><path d="m16 16 5 5M10.7 8v5.4M8 10.7h5.4"/></svg><span>FOTOĞRAFI BÜYÜT</span>';
         button.append(img,zoom);return button;
@@ -91,10 +107,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const frame=document.createElement('button');frame.type='button';frame.className='gallery-item named-product';
         frame.dataset.src=source(row.image_url);frame.dataset.caption=row.item_title||row.alt_text||`${category} fotoğrafı`;
         frame.setAttribute('aria-label',`${frame.dataset.caption} görselini büyüt`);
-        const image=document.createElement('img');image.src=source(row.image_url);
+        const image=document.createElement('img');
         image.alt=row.alt_text||`${category} fotoğrafı`;
         image.width=row.image_width||1200;image.height=row.image_height||1800;
-        image.loading='lazy';image.decoding='async';frame.append(image);
+        image.loading=index===0?'eager':'lazy';image.decoding='async';image.src=frame.dataset.src;frame.append(image);
         if(row.item_title){const caption=document.createElement('span');const title=document.createElement('strong');title.textContent=row.item_title;caption.append(title);frame.append(caption);}
         return frame;
       });
@@ -102,10 +118,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const empty=document.createElement('p');empty.className='gallery-empty';empty.textContent='Bu kategoriye ait fotoğraflar yakında eklenecek.';grid.replaceChildren(empty);
       }
       else grid.replaceChildren(...cards);
-    }
-    const lead=(carousel||grid)?.querySelector('img');
-    if(lead?.decode){
-      await Promise.race([lead.decode().catch(()=>{}),new Promise(resolve=>setTimeout(resolve,2000))]);
     }
   }catch(error){
     // Keep the existing static gallery if Supabase is temporarily unreachable.
