@@ -7,6 +7,7 @@
   const saveButton = $('#save-order');
   const preview = $('#preview');
   let client, categories = [], category, photos = [], dirty = false, busy = false, uploading = false, statusTimer, categoryOrderDirty = false;
+  let drag = null;
 
   function message(text, error = false) {
     status.textContent = text;
@@ -41,33 +42,45 @@
     return new URL('../' + url.replace(/^\/+/, ''), location.href).href;
   }
   function renumber() {
-    [...list.querySelectorAll('.photo-card')].forEach((card, index) => {
-      card.querySelector('.photo-number').textContent = String(index + 1);
-      card.querySelector('.drag-handle').setAttribute('aria-label', `${index + 1}. fotoğrafı sürükleyerek sırala`);
-    });
+    let position = 0;
+    for (const card of list.querySelectorAll('.photo-card')) {
+      const number = card.querySelector('.photo-number');
+      const handle = card.querySelector('.drag-handle');
+      if (card.dataset.duplicate === 'true') {
+        number.textContent = '–';
+        handle.setAttribute('aria-label', 'Yayında gizlenen tekrar');
+        continue;
+      }
+      position++;
+      number.textContent = String(position);
+      handle.setAttribute('aria-label', `${position}. fotoğrafı sürükleyerek sırala`);
+    }
   }
   function card(photo) {
+    const product = curated(photo);
     const article = document.createElement('article');
     article.className = 'photo-card';
     article.dataset.id = photo.id;
+    if (product?.duplicate) article.dataset.duplicate = 'true';
     const top = document.createElement('div'); top.className = 'photo-top';
     const number = document.createElement('span'); number.className = 'photo-number';
     const drag = document.createElement('button'); drag.type = 'button'; drag.className = 'drag-handle'; drag.textContent = '☷  Tutup sürükleyin';
+    drag.disabled = Boolean(product?.duplicate);
     top.append(number, drag);
     const image = document.createElement('img');
-    image.src = photoUrl(curated(photo)?.asset || photo.image_url); image.alt = photo.alt_text || `${category.label} fotoğrafı`;
+    image.src = photoUrl(product?.asset || photo.image_url); image.alt = photo.alt_text || `${category.label} fotoğrafı`;
     image.width = photo.image_width || 1200; image.height = photo.image_height || 1800;
     image.loading = 'lazy'; image.decoding = 'async';
     const caption = document.createElement('label'); caption.className = 'photo-caption'; caption.textContent = 'Ürün / görsel adı';
     const titleInput = document.createElement('input'); titleInput.className = 'item-title'; titleInput.maxLength = 120;
-    titleInput.value = curated(photo)?.title || photo.item_title || ''; titleInput.placeholder = 'Örn. Beyaz gül buketi';
+    titleInput.value = product?.title || photo.item_title || ''; titleInput.placeholder = 'Örn. Beyaz gül buketi';
     caption.append(titleInput);
     let productFields = [];
     if (category.kind === 'cicekcilik') {
       const description = document.createElement('label'); description.className = 'photo-caption'; description.textContent = 'Kısa ürün açıklaması';
       const descriptionInput = document.createElement('textarea'); descriptionInput.className = 'item-description';
       descriptionInput.maxLength = 320; descriptionInput.rows = 2;
-      descriptionInput.value = photo.item_description || curated(photo)?.description || '';
+      descriptionInput.value = photo.item_description || product?.description || '';
       descriptionInput.placeholder = 'Gerçek ürün özelliklerini yazın';
       description.append(descriptionInput);
       const sameDay = document.createElement('label'); sameDay.className = 'photo-caption same-day-toggle';
@@ -83,6 +96,11 @@
     ]) {
       const button = document.createElement('button'); button.type = 'button';
       button.textContent = label; button.dataset.action = action; button.className = extra;
+      if (action === 'first' && product?.duplicate) {
+        button.textContent = 'Yayında gizli';
+        button.title = 'Bu tekrar kayıt ziyaretçilere gösterilmiyor.';
+        button.disabled = true;
+      }
       actions.append(button);
     }
     article.append(top, image, caption, ...productFields, actions);
@@ -96,6 +114,10 @@
       list.append(empty);
     }
     renumber(); setDirty(false);
+  }
+  function orderedPhotos(slug, fields) {
+    return client.from('gallery_photos').select(fields).eq('category', slug)
+      .order('sort_order').order('created_at').order('id');
   }
   async function loadCategory(slug) {
     if (busy) return;
@@ -114,8 +136,7 @@
     $('#categories').querySelectorAll('.category-select').forEach(button => button.setAttribute('aria-current', String(button.dataset.slug === slug)));
     photos = []; setDirty(false);
     list.textContent = 'Fotoğraflar yükleniyor…';
-    const { data, error } = await client.from('gallery_photos').select('id,category,image_url,storage_path,alt_text,item_title,item_description,same_day_available,image_width,image_height,sort_order,created_at')
-      .eq('category', slug).order('sort_order', { ascending: true }).order('created_at', { ascending: true }).order('id', { ascending: true });
+    const { data, error } = await orderedPhotos(slug, 'id,category,image_url,storage_path,alt_text,item_title,item_description,same_day_available,image_width,image_height,sort_order,created_at');
     if (error) { list.textContent = ''; fail(error); return; }
     photos = data || []; renderPhotos();
     const suggestions = photos.filter(photo => {
@@ -128,17 +149,40 @@
     } catch (error) { list.textContent = ''; fail(error); } finally { setBusy(false); }
   }
   async function saveOrder() {
-    if (busy) return false;
-    if (!(await saveCategoryOrder())) return false;
+    if (busy || !(await saveCategoryOrder())) return false;
+    return savePhotoOrder();
+  }
+  async function savePhotoOrder() {
+    if (busy || drag) return false;
     if (!dirty) return true;
-    setBusy(true);
+    const slug = category.slug;
     const ids = [...list.querySelectorAll('.photo-card')].map(item => item.dataset.id);
-    const { error } = await client.rpc('reorder_gallery', { p_category: category.slug, p_ids: ids });
-    setBusy(false);
-    if (error) { fail(error); return false; }
-    photos.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
-    setDirty(false); message('Fotoğraf sıralaması kaydedildi. Hizmet sayfasına yansıdı.');
-    return true;
+    setBusy(true);
+    $('#change-indicator').textContent = 'Sıralama kaydediliyor…';
+    try {
+      const { error } = await client.rpc('reorder_gallery', { p_category: slug, p_ids: ids });
+      if (error) throw error;
+      const { data, error: readError } = await orderedPhotos(slug, 'id,sort_order');
+      if (readError) throw readError;
+      if (!data || data.length !== ids.length || data.some((row, index) => row.id !== ids[index])) {
+        throw new Error('Kaydedilen sıra doğrulanamadı. Sıralamayı tekrar kaydedin.');
+      }
+      const savedPhotos = new Map(photos.map(photo => [photo.id, photo]));
+      photos = data.map(row => {
+        const photo = savedPhotos.get(row.id);
+        photo.sort_order = row.sort_order;
+        return photo;
+      });
+      setDirty(false);
+      message('Sıralama kaydedildi. Hizmet sayfasını yenileyerek görebilirsiniz.');
+      return true;
+    } catch (error) {
+      setDirty(true);
+      fail(error);
+      return false;
+    } finally {
+      setBusy(false);
+    }
   }
   async function dimensions(file) {
     const url = URL.createObjectURL(file);
@@ -578,15 +622,24 @@
     await loadCategory(category.slug);
     if (deleted) message(`${deleted} tekrar eden fotoğraf silindi.`);
   });
-  saveButton.addEventListener('click', saveOrder);
+  saveButton.addEventListener('click', savePhotoOrder);
   list.addEventListener('click', event => {
     const button = event.target.closest('[data-action]');
     const element = event.target.closest('.photo-card');
-    if (!button || !element || busy) return;
+    if (!button || button.disabled || !element || busy || drag) return;
     const photo = photos.find(item => item.id === element.dataset.id);
     if (!photo) return;
     switch (button.dataset.action) {
-      case 'first': list.prepend(element); renumber(); setDirty(true); break;
+      case 'first':
+        if (element === list.firstElementChild && !dirty) {
+          message('Bu ürün zaten 1. sırada.');
+          break;
+        }
+        list.prepend(element);
+        renumber();
+        setDirty(true);
+        void savePhotoOrder();
+        break;
       case 'preview':
         preview.querySelector('img').src = photoUrl(photo.image_url);
         preview.querySelector('img').alt = photo.alt_text;
@@ -614,16 +667,15 @@
   });
   $('#close-preview').addEventListener('click', () => preview.close());
   preview.addEventListener('click', event => { if (event.target === preview) preview.close(); });
-  let drag = null;
   list.addEventListener('pointerdown', event => {
     const handle = event.target.closest('.drag-handle');
-    if (!handle || busy) return;
+    if (!handle || handle.disabled || busy || drag) return;
     const card = handle.closest('.photo-card');
     drag = { card, handle, id: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
     list.setPointerCapture(event.pointerId);
   });
   list.addEventListener('pointermove', event => {
-    if (!drag || drag.id !== event.pointerId) return;
+    if (busy || !drag || drag.id !== event.pointerId) return;
     if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 8) return;
     drag.moved = true; drag.card.classList.add('dragging');
     drag.card.style.pointerEvents = 'none';
@@ -645,6 +697,7 @@
   }
   list.addEventListener('pointerup', finishDrag);
   list.addEventListener('pointercancel', finishDrag);
+  list.addEventListener('lostpointercapture', finishDrag);
   window.addEventListener('beforeunload', event => { if (dirty || categoryOrderDirty) { event.preventDefault(); event.returnValue = ''; } });
 
   if (!/^https:\/\/[^/]+/.test(config.url || '') || !config.publishableKey) {
